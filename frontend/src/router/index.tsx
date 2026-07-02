@@ -4,6 +4,7 @@ import { Landing } from '../pages/landing/Landing';
 import { Login } from '../pages/auth/Login';
 import { Register } from '../pages/auth/Register';
 import { DashboardHome } from '../pages/dashboard/DashboardHome';
+import { StudentProfile } from '../pages/student/StudentProfile';
 import { ProtectedRoute } from '../components/shared/ProtectedRoute';
 
 export const AppRouter: React.FC = () => {
@@ -18,6 +19,7 @@ export const AppRouter: React.FC = () => {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardHome />} />
+          <Route path="/profile" element={<StudentProfile />} />
         </Route>
 
         {/* Fallback Redirect */}

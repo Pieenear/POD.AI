@@ -1,0 +1,169 @@
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IEducation {
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  startDate: Date;
+  endDate?: Date;
+  current: boolean;
+  grade?: string;
+}
+
+export interface IExperience {
+  company: string;
+  position: string;
+  location?: string;
+  startDate: Date;
+  endDate?: Date;
+  current: boolean;
+  description?: string;
+}
+
+export interface IProject {
+  title: string;
+  description: string;
+  technologies: string[];
+  link?: string;
+  githubLink?: string;
+}
+
+export interface ICertification {
+  name: string;
+  issuingOrganization: string;
+  issueDate: Date;
+  expirationDate?: Date;
+  credentialId?: string;
+  credentialUrl?: string;
+}
+
+export interface IResumeVersion {
+  versionNumber: number;
+  url: string;
+  fileName: string;
+  uploadedAt: Date;
+}
+
+export interface IAiReview {
+  score: number;
+  grammarRating: string;
+  formattingRating: string;
+  keywordMatch: string[];
+  suggestions: string[];
+  reviewedAt: Date;
+}
+
+export interface IStudentProfile extends Document {
+  userId: mongoose.Types.ObjectId;
+  headline?: string;
+  bio?: string;
+  skills: string[];
+  education: IEducation[];
+  experience: IExperience[];
+  projects: IProject[];
+  certifications: ICertification[];
+  github?: string;
+  linkedin?: string;
+  portfolio?: string;
+  codingProfiles?: {
+    leetcode?: string;
+    hackerrank?: string;
+    codeforces?: string;
+  };
+  resumeUrl?: string;
+  resumeVersions: IResumeVersion[];
+  aiReview?: IAiReview;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const EducationSchema = new Schema<IEducation>({
+  institution: { type: String, required: true },
+  degree: { type: String, required: true },
+  fieldOfStudy: { type: String, required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date },
+  current: { type: Boolean, default: false },
+  grade: { type: String }
+});
+
+const ExperienceSchema = new Schema<IExperience>({
+  company: { type: String, required: true },
+  position: { type: String, required: true },
+  location: { type: String },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date },
+  current: { type: Boolean, default: false },
+  description: { type: String }
+});
+
+const ProjectSchema = new Schema<IProject>({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  technologies: [{ type: String }],
+  link: { type: String },
+  githubLink: { type: String }
+});
+
+const CertificationSchema = new Schema<ICertification>({
+  name: { type: String, required: true },
+  issuingOrganization: { type: String, required: true },
+  issueDate: { type: Date, required: true },
+  expirationDate: { type: Date },
+  credentialId: { type: String },
+  credentialUrl: { type: String }
+});
+
+const ResumeVersionSchema = new Schema<IResumeVersion>({
+  versionNumber: { type: Number, required: true },
+  url: { type: String, required: true },
+  fileName: { type: String, required: true },
+  uploadedAt: { type: Date, default: Date.now }
+});
+
+const AiReviewSchema = new Schema<IAiReview>({
+  score: { type: Number, required: true },
+  grammarRating: { type: String, required: true },
+  formattingRating: { type: String, required: true },
+  keywordMatch: [{ type: String }],
+  suggestions: [{ type: String }],
+  reviewedAt: { type: Date, default: Date.now }
+});
+
+const StudentProfileSchema = new Schema<IStudentProfile>(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      unique: true
+    },
+    headline: { type: String, trim: true },
+    bio: { type: String, trim: true },
+    skills: [{ type: String, trim: true }],
+    education: [EducationSchema],
+    experience: [ExperienceSchema],
+    projects: [ProjectSchema],
+    certifications: [CertificationSchema],
+    github: { type: String, trim: true },
+    linkedin: { type: String, trim: true },
+    portfolio: { type: String, trim: true },
+    codingProfiles: {
+      leetcode: { type: String, trim: true },
+      hackerrank: { type: String, trim: true },
+      codeforces: { type: String, trim: true }
+    },
+    resumeUrl: { type: String },
+    resumeVersions: [ResumeVersionSchema],
+    aiReview: AiReviewSchema
+  },
+  {
+    timestamps: true
+  }
+);
+
+// Indexes
+StudentProfileSchema.index({ userId: 1 });
+StudentProfileSchema.index({ skills: 1 });
+
+export const StudentProfile = mongoose.model<IStudentProfile>('StudentProfile', StudentProfileSchema);

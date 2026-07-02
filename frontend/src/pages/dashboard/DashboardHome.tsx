@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
 import { LogOut, GraduationCap, Building2, Briefcase, Network, Cpu, FileText, CheckCircle, Clock } from 'lucide-react';
@@ -71,6 +72,14 @@ export const DashboardHome: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            {user?.role === UserRole.STUDENT && (
+              <Link
+                to="/profile"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 text-xs font-bold transition-all shadow-sm shadow-indigo-650/10"
+              >
+                My Profile
+              </Link>
+            )}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-slate-100/50 dark:bg-slate-900/50 text-xs font-medium">
               {getRoleIcon(user?.role)}
               <span>{formatRole(user?.role)}</span>
