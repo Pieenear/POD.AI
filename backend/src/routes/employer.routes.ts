@@ -20,4 +20,8 @@ router.delete('/jobs/:id', EmployerController.deleteJob);
 router.get('/drives', EmployerController.getDrives);
 router.post('/drives', EmployerController.createDrive);
 
+router.get('/jobs/:jobId/applications', EmployerController.getJobApplications);
+router.put('/applications/:id/status', EmployerController.updateApplicationStatus);
+router.post('/interviews', EmployerController.scheduleInterview);
+
 export default router;

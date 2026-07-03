@@ -172,4 +172,134 @@ export class AiService {
       suggestions
     };
   }
+
+  /**
+   * Evaluates how well a student's profile aligns with a specific job posting.
+   */
+  public static async evaluateJobAlignment(profile: any, job: any): Promise<IAiMatchResult> {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (apiKey && apiKey !== 'your_openai_api_key') {
+      try {
+        return await this.queryOpenAiAlignment(profile, job, apiKey);
+      } catch (error) {
+        logger.error('OpenAI alignment evaluation failed, falling back to local check', error);
+        return this.runLocalAlignment(profile, job);
+      }
+    } else {
+      logger.info('OpenAI API Key not set. Executing local heuristic alignment evaluation.');
+      return this.runLocalAlignment(profile, job);
+    }
+  }
+
+  private static async queryOpenAiAlignment(profile: any, job: any, apiKey: string): Promise<IAiMatchResult> {
+    const prompt = `
+      You are an expert technical recruiter. Evaluate how well the following student profile matches the job requirements.
+      
+      Job Details:
+      Title: ${job.title}
+      Description: ${job.description}
+      Skills Required: ${(job.skillsRequired || []).join(', ')}
+      Requirements: ${(job.requirements || []).join(', ')}
+      
+      Student Profile Details:
+      Skills: ${(profile.skills || []).join(', ')}
+      Bio/Headline: ${profile.headline || 'N/A'} - ${profile.bio || 'N/A'}
+      Projects: ${JSON.stringify((profile.projects || []).map((p: any) => ({ title: p.title, desc: p.description, tech: p.technologies })))}
+      Experience: ${JSON.stringify((profile.experience || []).map((e: any) => ({ company: e.company, role: e.position, desc: e.description })))}
+      
+      Provide a match score (0-100), key strengths, gaps (what skills/requirements they lack), and recommendations to improve.
+      Return ONLY a JSON block containing the keys:
+      {
+        "score": number,
+        "strengths": string[],
+        "gaps": string[],
+        "recommendations": string[]
+      }
+    `;
+
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that outputs only formatted JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        response_format: { type: 'json_object' }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`
+        }
+      }
+    );
+
+    const jsonText = response.data.choices[0].message.content;
+    return JSON.parse(jsonText) as IAiMatchResult;
+  }
+
+  private static runLocalAlignment(profile: any, job: any): IAiMatchResult {
+    const strengths: string[] = [];
+    const gaps: string[] = [];
+    const recommendations: string[] = [];
+    
+    const studentSkills = new Set((profile.skills || []).map((s: string) => s.toLowerCase()));
+    const jobSkills = job.skillsRequired || [];
+    
+    let matchedSkillsCount = 0;
+    jobSkills.forEach((s: string) => {
+      if (studentSkills.has(s.toLowerCase())) {
+        matchedSkillsCount++;
+        strengths.push(`Matches skill requirement: ${s}`);
+      } else {
+        gaps.push(`Missing skill: ${s}`);
+        recommendations.push(`Acquire skills in ${s} through courses or personal projects.`);
+      }
+    });
+
+    if (profile.projects?.length > 0) {
+      strengths.push('Has active software projects demonstrated on profile');
+    } else {
+      gaps.push('No software projects showcased');
+      recommendations.push('Create and publish 1-2 major software projects demonstrating code competencies.');
+    }
+
+    if (profile.experience?.length > 0) {
+      strengths.push('Has previous internship/work history');
+    } else {
+      recommendations.push('Apply for internships or open-source programs to build initial industry background.');
+    }
+
+    // Score calculation
+    const totalJobSkills = jobSkills.length;
+    let skillScore = 50; 
+    if (totalJobSkills > 0) {
+      skillScore = (matchedSkillsCount / totalJobSkills) * 60; 
+    }
+    
+    let experienceScore = 0;
+    if (profile.projects?.length > 0) experienceScore += 15;
+    if (profile.experience?.length > 0) experienceScore += 15;
+    
+    const finalScore = Math.min(Math.round(20 + skillScore + experienceScore), 99);
+
+    if (strengths.length === 0) strengths.push('Has completed basic profile setup');
+
+    return {
+      score: finalScore,
+      strengths,
+      gaps: gaps.length > 0 ? gaps : ['No significant gaps identified'],
+      recommendations: recommendations.length > 0 ? recommendations : ['Profile looks solid for application!']
+    };
+  }
+}
+
+export interface IAiMatchResult {
+  score: number;
+  strengths: string[];
+  gaps: string[];
+  recommendations: string[];
 }

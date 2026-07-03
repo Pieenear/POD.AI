@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
 import { JobCreateDialog } from '../../components/employer/JobCreateDialog';
 import { DriveCreateDialog } from '../../components/employer/DriveCreateDialog';
+import { InterviewSchedulerDialog } from '../../components/employer/InterviewSchedulerDialog';
+import { CandidateDetailsDialog } from '../../components/employer/CandidateDetailsDialog';
 import {
   Building2,
   Briefcase,
@@ -18,7 +20,8 @@ import {
   Globe,
   FileText,
   Clock,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 
 export const EmployerDashboard: React.FC = () => {
@@ -27,13 +30,21 @@ export const EmployerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [drives, setDrives] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'profile' | 'ats'>('overview');
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Dialog controls
   const [jobOpen, setJobOpen] = useState(false);
   const [driveOpen, setDriveOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any>(null);
+
+  // ATS tracking states
+  const [selectedJobId, setSelectedJobId] = useState<string>('');
+  const [applications, setApplications] = useState<any[]>([]);
+  const [selectedApp, setSelectedApp] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [schedulerApp, setSchedulerApp] = useState<any>(null);
 
   // Form states (Company details)
   const [name, setName] = useState('');
@@ -76,6 +87,69 @@ export const EmployerDashboard: React.FC = () => {
   useEffect(() => {
     fetchCompanyData();
   }, []);
+
+  const fetchApplicationsForJob = async (jobId: string) => {
+    if (!jobId) {
+      setApplications([]);
+      return;
+    }
+    try {
+      const res = await api.get(`/employer/jobs/${jobId}/applications`);
+      setApplications(res.data.data.applications || []);
+    } catch {
+      showNotice('Failed to load applications for this job', 'error');
+    }
+  };
+
+  const handleUpdateApplicationStatus = async (appId: string, status: string, commentText: string) => {
+    try {
+      const res = await api.put(`/employer/applications/${appId}/status`, {
+        status,
+        comments: commentText
+      });
+      showNotice(`Application stage updated to ${status}`);
+      // Refresh list & current detail viewer
+      setApplications(prev => prev.map(a => (a._id === appId ? res.data.data.application : a)));
+      setSelectedApp(res.data.data.application);
+    } catch {
+      showNotice('Failed to progress application stage', 'error');
+    }
+  };
+
+  const handleSaveInterview = async (interviewData: any) => {
+    try {
+      await api.post('/employer/interviews', interviewData);
+      showNotice('Interview slot scheduled successfully!');
+      
+      // Update local applications timeline to 'interviewing' stage
+      setApplications(prev => prev.map(a => {
+        if (a._id === interviewData.applicationId) {
+          return {
+            ...a,
+            status: 'interviewing',
+            timeline: [
+              ...a.timeline,
+              { status: 'interviewing', updatedAt: new Date(), comments: `Interview scheduled: "${interviewData.title}"` }
+            ]
+          };
+        }
+        return a;
+      }));
+
+      if (selectedApp?._id === interviewData.applicationId) {
+        setSelectedApp((prev: any) => ({
+          ...prev,
+          status: 'interviewing',
+          timeline: [
+            ...prev.timeline,
+            { status: 'interviewing', updatedAt: new Date(), comments: `Interview scheduled: "${interviewData.title}"` }
+          ]
+        }));
+      }
+    } catch {
+      showNotice('Failed to schedule interview round', 'error');
+    }
+  };
 
   const showNotice = (text: string, type: 'success' | 'error' = 'success') => {
     setNotification({ text, type });
@@ -224,6 +298,20 @@ export const EmployerDashboard: React.FC = () => {
               }`}
             >
               Job Postings ({jobs.length})
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('ats');
+                if (jobs.length > 0 && !selectedJobId) {
+                  setSelectedJobId(jobs[0]._id);
+                  fetchApplicationsForJob(jobs[0]._id);
+                }
+              }}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'ats' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              Applicants Tracking
             </button>
             <button
               onClick={() => setActiveTab('profile')}
@@ -521,6 +609,95 @@ export const EmployerDashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Tab 4: ATS */}
+        {activeTab === 'ats' && (
+          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+              <div>
+                <h3 className="text-lg font-bold">Applicant Tracking System (ATS)</h3>
+                <p className="text-xs text-muted-foreground">Select a job listing to view and evaluate matches sorted by AI alignment scores.</p>
+              </div>
+
+              <div className="w-full sm:w-64">
+                <select
+                  value={selectedJobId}
+                  onChange={(e) => {
+                    setSelectedJobId(e.target.value);
+                    fetchApplicationsForJob(e.target.value);
+                  }}
+                  className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="">-- Select Active Job Listing --</option>
+                  {jobs.map(j => (
+                    <option key={j._id} value={j._id}>{j.title} ({j.location})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {selectedJobId ? (
+              <div className="border rounded-xl overflow-hidden bg-background">
+                {applications.length > 0 ? (
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-muted-foreground">
+                      <tr>
+                        <th className="px-6 py-3">Applicant Name</th>
+                        <th className="px-6 py-3">Email Address</th>
+                        <th className="px-6 py-3 text-center">AI Match Score</th>
+                        <th className="px-6 py-3 text-center">Current Status</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {applications.map((app) => (
+                        <tr key={app._id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
+                          <td className="px-6 py-4 font-bold">{app.studentId?.name}</td>
+                          <td className="px-6 py-4 text-slate-500">{app.studentId?.email}</td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                              app.aiMatchScore >= 80
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-150 dark:bg-emerald-950/20'
+                                : app.aiMatchScore >= 60
+                                ? 'bg-indigo-50 text-indigo-600 border-indigo-150 dark:bg-indigo-950/20'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800/10'
+                            }`}>
+                              {app.aiMatchScore}% Match
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center capitalize font-bold text-slate-600 dark:text-slate-350">
+                            {app.status}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={() => {
+                                setSelectedApp(app);
+                                setDetailOpen(true);
+                              }}
+                              className="h-7 px-3 border hover:bg-muted rounded-md text-[10px] font-bold transition-colors inline-flex items-center gap-0.5"
+                            >
+                              Evaluate Profile
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-1.5">
+                    <Users className="h-8 w-8 text-slate-300" />
+                    No candidates have applied to this job listing yet.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl flex flex-col items-center justify-center gap-1.5">
+                <Briefcase className="h-8 w-8 text-slate-300" />
+                Select a job from the dropdown above to manage applicant rosters.
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Modals */}
@@ -535,6 +712,22 @@ export const EmployerDashboard: React.FC = () => {
         onClose={() => setDriveOpen(false)}
         onSave={handleScheduleDrive}
         jobs={jobs}
+      />
+      <CandidateDetailsDialog
+        isOpen={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        application={selectedApp}
+        onUpdateStatus={handleUpdateApplicationStatus}
+        onTriggerSchedule={(app) => {
+          setSchedulerApp(app);
+          setSchedulerOpen(true);
+        }}
+      />
+      <InterviewSchedulerDialog
+        isOpen={schedulerOpen}
+        onClose={() => setSchedulerOpen(false)}
+        onSave={handleSaveInterview}
+        application={schedulerApp}
       />
     </div>
   );

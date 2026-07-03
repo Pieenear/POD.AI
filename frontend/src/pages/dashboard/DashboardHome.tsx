@@ -73,12 +73,20 @@ export const DashboardHome: React.FC = () => {
 
           <div className="flex items-center gap-4">
             {user?.role === UserRole.STUDENT && (
-              <Link
-                to="/profile"
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 text-xs font-bold transition-all shadow-sm shadow-indigo-650/10"
-              >
-                My Profile
-              </Link>
+              <>
+                <Link
+                  to="/jobs"
+                  className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-muted text-foreground px-3.5 text-xs font-bold transition-all"
+                >
+                  Search Jobs
+                </Link>
+                <Link
+                  to="/profile"
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 text-xs font-bold transition-all shadow-sm shadow-indigo-650/10"
+                >
+                  My Profile
+                </Link>
+              </>
             )}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-slate-100/50 dark:bg-slate-900/50 text-xs font-medium">
               {getRoleIcon(user?.role)}

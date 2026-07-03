@@ -5,6 +5,7 @@ import { Login } from '../pages/auth/Login';
 import { Register } from '../pages/auth/Register';
 import { DashboardHome } from '../pages/dashboard/DashboardHome';
 import { StudentProfile } from '../pages/student/StudentProfile';
+import { StudentJobs } from '../pages/student/StudentJobs';
 import { EmployerDashboard } from '../pages/employer/EmployerDashboard';
 import { OfficerDashboard } from '../pages/officer/OfficerDashboard';
 import { ProtectedRoute } from '../components/shared/ProtectedRoute';
@@ -23,6 +24,10 @@ export const AppRouter: React.FC = () => {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/profile" element={<StudentProfile />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRole.STUDENT]} />}>
+          <Route path="/jobs" element={<StudentJobs />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={[UserRole.EMPLOYER, UserRole.RECRUITER]} />}>

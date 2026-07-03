@@ -4,6 +4,8 @@ import { Job } from '../models/job.model';
 import { CampusDrive } from '../models/drive.model';
 import { User } from '../models/user.model';
 import { UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors';
+import { Application } from '../models/application.model';
+import { Interview } from '../models/interview.model';
 
 export class EmployerController {
   /**
@@ -321,6 +323,151 @@ export class EmployerController {
         success: true,
         message: 'Campus drive scheduled successfully.',
         data: { drive: populatedDrive }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Retrieves all candidate applications submitted for a job opening.
+   */
+  public static async getJobApplications(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const { jobId } = req.params;
+
+      // Verify ownership of the job
+      const job = await Job.findById(jobId);
+      if (!job) {
+        throw new NotFoundError('Job opening not found.');
+      }
+
+      if (job.postedBy.toString() !== req.user.userId) {
+        throw new ForbiddenError('You are not authorized to view applications for this listing.');
+      }
+
+      const applications = await Application.find({ jobId })
+        .populate('studentId', 'name email')
+        .sort({ aiMatchScore: -1 });
+
+      res.status(200).json({
+        success: true,
+        data: { applications }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Updates an application status stage and registers it in the timeline history.
+   */
+  public static async updateApplicationStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const { id } = req.params;
+      const { status, comments, feedback } = req.body;
+
+      if (!status) {
+        throw new BadRequestError('New status is required.');
+      }
+
+      const application = await Application.findById(id);
+      if (!application) {
+        throw new NotFoundError('Application record not found.');
+      }
+
+      // Check job ownership
+      const job = await Job.findById(application.jobId);
+      if (!job || job.postedBy.toString() !== req.user.userId) {
+        throw new ForbiddenError('You are not authorized to edit this application.');
+      }
+
+      application.status = status;
+      if (feedback !== undefined) application.feedback = feedback;
+      
+      // Push stage transition to history log
+      application.timeline.push({
+        status,
+        updatedAt: new Date(),
+        comments: comments || `Status changed to ${status}`
+      });
+
+      await application.save();
+
+      res.status(200).json({
+        success: true,
+        message: `Application stage progressed to ${status}.`,
+        data: { application }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Schedules a candidate interview.
+   */
+  public static async scheduleInterview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const { applicationId, title, date, duration, type, linkOrLocation, comments } = req.body;
+
+      if (!applicationId || !title || !date || !linkOrLocation) {
+        throw new BadRequestError('Application ID, title, date, and link/location are required.');
+      }
+
+      const application = await Application.findById(applicationId);
+      if (!application) {
+        throw new NotFoundError('Application not found.');
+      }
+
+      // Verify job ownership
+      const job = await Job.findById(application.jobId);
+      if (!job || job.postedBy.toString() !== req.user.userId) {
+        throw new ForbiddenError('You are not authorized to schedule interviews for this role.');
+      }
+
+      const interview = new Interview({
+        applicationId,
+        jobId: application.jobId,
+        studentId: application.studentId,
+        companyId: job.companyId,
+        title,
+        date: new Date(date),
+        duration: duration || 30,
+        type: type || 'online',
+        linkOrLocation,
+        status: 'scheduled'
+      });
+
+      await interview.save();
+
+      // Automatically advance application status to 'interviewing' if it's not already
+      if (application.status === 'applied' || application.status === 'shortlisted') {
+        application.status = 'interviewing';
+        application.timeline.push({
+          status: 'interviewing',
+          updatedAt: new Date(),
+          comments: comments || `Interview scheduled: "${title}"`
+        });
+        await application.save();
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Interview slot scheduled successfully.',
+        data: { interview }
       });
     } catch (error) {
       next(error);

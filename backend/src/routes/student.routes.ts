@@ -46,4 +46,9 @@ router.put('/profile', StudentController.updateProfile);
 router.post('/resume/upload', upload.single('resume'), StudentController.uploadResume);
 router.post('/resume/ai-score', StudentController.triggerAiReview);
 
+router.get('/jobs', StudentController.getJobsList);
+router.get('/applications', StudentController.getApplicationsList);
+router.post('/applications', StudentController.submitApplication);
+router.get('/interviews', StudentController.getInterviewsList);
+
 export default router;
