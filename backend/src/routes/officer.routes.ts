@@ -23,4 +23,9 @@ router.delete('/notices/:id', OfficerController.deleteNotice);
 router.get('/rules', OfficerController.getRules);
 router.put('/rules', OfficerController.updateRules);
 
+// Admin-only user management routes
+router.get('/users', requireRoles(UserRole.COLLEGE_ADMIN), OfficerController.getUsersList);
+router.put('/users/:id/role', requireRoles(UserRole.COLLEGE_ADMIN), OfficerController.updateUserRole);
+router.delete('/users/:id', requireRoles(UserRole.COLLEGE_ADMIN), OfficerController.deleteUserAccount);
+
 export default router;

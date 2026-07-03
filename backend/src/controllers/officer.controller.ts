@@ -23,6 +23,42 @@ export class OfficerController {
       const totalPlaced = profiles.filter(p => p.bio?.toLowerCase().includes('placed') || p.headline?.toLowerCase().includes('placed')).length;
       const placedPercent = studentCount > 0 ? Math.round((totalPlaced / studentCount) * 100) : 0;
 
+      // Department branch placement metrics compiler
+      const branchStatsMap: { [key: string]: { total: number; placed: number } } = {};
+      profiles.forEach(p => {
+        const branch = p.education?.[0]?.fieldOfStudy || 'General';
+        const isPlaced = p.bio?.toLowerCase().includes('placed') || p.headline?.toLowerCase().includes('placed') || (p.badges && p.badges.includes('hired'));
+        
+        // Normalize branch tags (e.g. CSE, IT, ECE)
+        const normBranch = branch.trim().toUpperCase().replace(/[^A-Z]/g, '');
+        const key = normBranch.length > 5 ? normBranch.slice(0, 5) : normBranch || 'GEN';
+
+        if (!branchStatsMap[key]) {
+          branchStatsMap[key] = { total: 0, placed: 0 };
+        }
+        branchStatsMap[key].total++;
+        if (isPlaced) {
+          branchStatsMap[key].placed++;
+        }
+      });
+
+      // Default mock ratios fallback if database contains no profiles yet for UI demonstration
+      let branchRatios = Object.entries(branchStatsMap).map(([branch, stats]) => ({
+        branch,
+        placedCount: stats.placed,
+        totalCount: stats.total,
+        ratio: stats.total > 0 ? Math.round((stats.placed / stats.total) * 100) : 0
+      }));
+
+      if (branchRatios.length === 0) {
+        branchRatios = [
+          { branch: 'CSE', placedCount: 42, totalCount: 50, ratio: 84 },
+          { branch: 'ECE', placedCount: 28, totalCount: 40, ratio: 70 },
+          { branch: 'MECH', placedCount: 15, totalCount: 30, ratio: 50 },
+          { branch: 'CIVIL', placedCount: 8, totalCount: 25, ratio: 32 }
+        ];
+      }
+
       res.status(200).json({
         success: true,
         data: {
@@ -31,7 +67,8 @@ export class OfficerController {
             totalCompanies: partnerCount,
             pendingApprovals: pendingCount,
             activeJobs: activeJobsCount,
-            placedPercentage: placedPercent > 0 ? placedPercent : 35 // fallback default for showcase demo
+            placedPercentage: placedPercent > 0 ? placedPercent : 64, // showcase default
+            branchMetrics: branchRatios
           }
         }
       });
@@ -258,6 +295,79 @@ export class OfficerController {
         success: true,
         message: 'Global placement rules updated successfully.',
         data: { rules }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Lists all user accounts.
+   */
+  public static async getUsersList(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const users = await User.find()
+        .select('name email role isVerified createdAt')
+        .sort({ createdAt: -1 });
+
+      res.status(200).json({
+        success: true,
+        data: { users }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Updates authorization role of a user.
+   */
+  public static async updateUserRole(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      if (!role) {
+        throw new BadRequestError('Role is required.');
+      }
+
+      const user = await User.findById(id);
+      if (!user) {
+        throw new NotFoundError('User account not found.');
+      }
+
+      user.role = role;
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'User authorization role updated successfully.',
+        data: { user }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Permanently deletes a user account and clears student profiles.
+   */
+  public static async deleteUserAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const user = await User.findByIdAndDelete(id);
+      
+      if (!user) {
+        throw new NotFoundError('User account not found.');
+      }
+
+      if (user.role === UserRole.STUDENT) {
+        await StudentProfile.deleteOne({ userId: id });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'User account permanently removed from system.'
       });
     } catch (error) {
       next(error);

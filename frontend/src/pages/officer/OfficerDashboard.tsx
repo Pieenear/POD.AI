@@ -3,6 +3,8 @@ import api from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
 import { NoticeCreateDialog } from '../../components/officer/NoticeCreateDialog';
+import { AdminUserManagement } from '../../components/officer/AdminUserManagement';
+import { UserRole } from '../../context/AuthContext';
 import {
   Building2,
   Plus,
@@ -15,18 +17,19 @@ import {
   Users,
   Check,
   LogOut,
-  Clock
+  Clock,
+  BarChart3
 } from 'lucide-react';
 
 export const OfficerDashboard: React.FC = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [companies, setCompanies] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [, setRules] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'students' | 'notices' | 'rules'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'students' | 'notices' | 'rules' | 'admin'>('overview');
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Dialog controls
@@ -282,6 +285,16 @@ export const OfficerDashboard: React.FC = () => {
             >
               Criteria Rules
             </button>
+            {(user?.role === UserRole.COLLEGE_ADMIN || user?.role === UserRole.SUPER_ADMIN) && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  activeTab === 'admin' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                Admin Control
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -375,6 +388,64 @@ export const OfficerDashboard: React.FC = () => {
                 </div>
               </div>
 
+            </div>
+
+            {/* Department-wise Placement Statistics (SVG analytics chart) */}
+            <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl space-y-4">
+              <h3 className="font-bold text-base border-b pb-2 flex items-center gap-1.5">
+                <BarChart3 className="h-4 w-4 text-indigo-500" />
+                Department-wise Placement Ratio Insights
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                {/* Visual Bar Graph */}
+                <div className="space-y-4">
+                  {stats?.branchMetrics?.map((m: any) => (
+                    <div key={m.branch} className="space-y-1">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>{m.branch} Department</span>
+                        <span className="text-indigo-600 dark:text-indigo-400">{m.placedCount} / {m.totalCount} Placed ({m.ratio}%)</span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden border">
+                        <div
+                          className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${m.ratio}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* SVG Radial/Donut chart representation */}
+                <div className="flex items-center justify-center">
+                  <div className="relative h-44 w-44 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="88"
+                        cy="88"
+                        r="70"
+                        className="stroke-slate-100 dark:stroke-slate-850"
+                        strokeWidth="12"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="88"
+                        cy="88"
+                        r="70"
+                        className="stroke-indigo-650"
+                        strokeWidth="12"
+                        fill="transparent"
+                        strokeDasharray={440}
+                        strokeDashoffset={440 - (440 * (stats?.placedPercentage || 64)) / 100}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-slate-850 dark:text-white">{stats?.placedPercentage || 64}%</span>
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Placed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -651,6 +722,13 @@ export const OfficerDashboard: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab 6: Admin Control User Registry Dashboard */}
+        {activeTab === 'admin' && (user?.role === UserRole.COLLEGE_ADMIN || user?.role === UserRole.SUPER_ADMIN) && (
+          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm">
+            <AdminUserManagement />
           </div>
         )}
       </main>
