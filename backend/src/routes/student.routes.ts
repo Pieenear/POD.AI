@@ -50,5 +50,6 @@ router.get('/jobs', StudentController.getJobsList);
 router.get('/applications', StudentController.getApplicationsList);
 router.post('/applications', StudentController.submitApplication);
 router.get('/interviews', StudentController.getInterviewsList);
+router.get('/notices', StudentController.getNoticesList);
 
 export default router;

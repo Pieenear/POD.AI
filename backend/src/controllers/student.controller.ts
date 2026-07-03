@@ -5,6 +5,7 @@ import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/erro
 import { Job } from '../models/job.model';
 import { Application } from '../models/application.model';
 import { Interview } from '../models/interview.model';
+import { Notice } from '../models/notice.model';
 
 export class StudentController {
   /**
@@ -244,7 +245,7 @@ export class StudentController {
           isEligible,
           ineligibleReason
         };
-      });
+      }).filter(job => job.isEligible);
 
       res.status(200).json({
         success: true,
@@ -375,6 +376,37 @@ export class StudentController {
       res.status(200).json({
         success: true,
         data: { interviews }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Retrieves notices that match the student's target branches and audience filters.
+   */
+  public static async getNoticesList(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const profile = await StudentProfile.findOne({ userId: req.user.userId });
+      const notices = await Notice.find({ targetAudience: { $in: ['all', 'students'] } })
+        .populate('createdBy', 'name')
+        .sort({ createdAt: -1 });
+
+      const eligibleNotices = notices.filter(notice => {
+        if (profile && notice.targetBranches && notice.targetBranches.length > 0) {
+          const studentBranch = profile.education?.[0]?.fieldOfStudy || '';
+          return notice.targetBranches.some(b => studentBranch.toLowerCase().includes(b.toLowerCase()));
+        }
+        return true;
+      });
+
+      res.status(200).json({
+        success: true,
+        data: { notices: eligibleNotices }
       });
     } catch (error) {
       next(error);

@@ -23,8 +23,9 @@ export const StudentJobs: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [interviews, setInterviews] = useState<any[]>([]);
+  const [notices, setNotices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'listings' | 'applications' | 'interviews'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'applications' | 'interviews' | 'notices'>('listings');
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const fetchStudentJobsData = async () => {
@@ -42,6 +43,10 @@ export const StudentJobs: React.FC = () => {
       // Fetch interviews
       const interviewsRes = await api.get('/student/interviews');
       setInterviews(interviewsRes.data.data.interviews || []);
+
+      // Fetch eligible notices
+      const noticesRes = await api.get('/student/notices');
+      setNotices(noticesRes.data.data.notices || []);
 
     } catch (err) {
       showNotice('Failed to retrieve placement jobs details', 'error');
@@ -178,6 +183,14 @@ export const StudentJobs: React.FC = () => {
               }`}
             >
               Interview Schedules ({interviews.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('notices')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'notices' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              Notices Board ({notices.length})
             </button>
           </div>
         </div>
@@ -363,6 +376,37 @@ export const StudentJobs: React.FC = () => {
                 <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
                   <Calendar className="h-8 w-8 text-slate-300" />
                   No upcoming interview slots scheduled.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Notices Board */}
+        {activeTab === 'notices' && (
+          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-4 shadow-sm">
+            <h3 className="font-bold text-base border-b pb-2 flex items-center gap-1.5">
+              <FileText className="h-4 w-4 text-indigo-500" />
+              Eligible Campus Announcements
+            </h3>
+
+            <div className="space-y-4">
+              {notices.length > 0 ? (
+                notices.map((n) => (
+                  <div key={n._id} className="border p-5 rounded-2xl flex flex-col justify-between gap-3 text-left">
+                    <div>
+                      <h4 className="font-extrabold text-base leading-snug">{n.title}</h4>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">
+                        Published by: {n.createdBy?.name || 'Placement Cell'} • {new Date(n.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-medium whitespace-pre-wrap">{n.body}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
+                  <FileText className="h-8 w-8 text-slate-300" />
+                  No announcements matching your branch profile.
                 </div>
               )}
             </div>
