@@ -6,6 +6,7 @@ import { User } from '../models/user.model';
 import { UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { Application } from '../models/application.model';
 import { Interview } from '../models/interview.model';
+import { StudentProfile } from '../models/student.model';
 
 export class EmployerController {
   /**
@@ -402,6 +403,20 @@ export class EmployerController {
 
       await application.save();
 
+      // Award hired badge if offered
+      if (status === 'offered') {
+        const studentProfile = await StudentProfile.findOne({ userId: application.studentId });
+        if (studentProfile) {
+          if (!studentProfile.badges) {
+            studentProfile.badges = [];
+          }
+          if (!studentProfile.badges.includes('hired')) {
+            studentProfile.badges.push('hired');
+            await studentProfile.save();
+          }
+        }
+      }
+
       res.status(200).json({
         success: true,
         message: `Application stage progressed to ${status}.`,
@@ -462,6 +477,18 @@ export class EmployerController {
           comments: comments || `Interview scheduled: "${title}"`
         });
         await application.save();
+      }
+
+      // Award interview_ready badge
+      const studentProfile = await StudentProfile.findOne({ userId: application.studentId });
+      if (studentProfile) {
+        if (!studentProfile.badges) {
+          studentProfile.badges = [];
+        }
+        if (!studentProfile.badges.includes('interview_ready')) {
+          studentProfile.badges.push('interview_ready');
+          await studentProfile.save();
+        }
       }
 
       res.status(201).json({

@@ -73,6 +73,7 @@ export interface IStudentProfile extends Document {
   resumeUrl?: string;
   resumeVersions: IResumeVersion[];
   aiReview?: IAiReview;
+  badges: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -155,7 +156,8 @@ const StudentProfileSchema = new Schema<IStudentProfile>(
     },
     resumeUrl: { type: String },
     resumeVersions: [ResumeVersionSchema],
-    aiReview: AiReviewSchema
+    aiReview: AiReviewSchema,
+    badges: [{ type: String, trim: true }]
   },
   {
     timestamps: true

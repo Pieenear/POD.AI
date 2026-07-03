@@ -95,6 +95,13 @@ export class StudentController {
         reviewedAt: new Date()
       };
 
+      if (!profile.badges) {
+        profile.badges = [];
+      }
+      if (profile.aiReview.score >= 80 && !profile.badges.includes('profile_pro')) {
+        profile.badges.push('profile_pro');
+      }
+
       await profile.save();
 
       res.status(200).json({
@@ -154,6 +161,13 @@ export class StudentController {
         reviewedAt: new Date()
       };
 
+      if (!profile.badges) {
+        profile.badges = [];
+      }
+      if (profile.aiReview.score >= 80 && !profile.badges.includes('profile_pro')) {
+        profile.badges.push('profile_pro');
+      }
+
       await profile.save();
 
       res.status(200).json({
@@ -187,6 +201,13 @@ export class StudentController {
         ...aiReviewResult,
         reviewedAt: new Date()
       };
+
+      if (!profile.badges) {
+        profile.badges = [];
+      }
+      if (profile.aiReview.score >= 80 && !profile.badges.includes('profile_pro')) {
+        profile.badges.push('profile_pro');
+      }
 
       await profile.save();
 
@@ -323,6 +344,15 @@ export class StudentController {
       });
 
       await application.save();
+
+      // Award first_strike badge if not already awarded
+      if (!profile.badges) {
+        profile.badges = [];
+      }
+      if (!profile.badges.includes('first_strike')) {
+        profile.badges.push('first_strike');
+        await profile.save();
+      }
 
       res.status(201).json({
         success: true,

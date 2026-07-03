@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
+import api from '../../config/api';
+import { BadgesList } from '../../components/student/BadgesList';
 import { LogOut, GraduationCap, Building2, Briefcase, Network, Cpu, FileText, CheckCircle, Clock } from 'lucide-react';
 
 export const DashboardHome: React.FC = () => {
   const { user, logout } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.role === UserRole.STUDENT) {
+      api.get('/student/profile')
+        .then((res) => {
+          setProfile(res.data.data.profile);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const getRoleIcon = (role?: UserRole) => {
     switch (role) {
@@ -92,6 +105,18 @@ export const DashboardHome: React.FC = () => {
               {getRoleIcon(user?.role)}
               <span>{formatRole(user?.role)}</span>
             </div>
+            <Link
+              to="/forum"
+              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Forum
+            </Link>
+            <Link
+              to="/mentorship"
+              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors mr-2"
+            >
+              Interview Logs
+            </Link>
             <ThemeToggle />
             <button
               onClick={() => logout()}
@@ -119,6 +144,13 @@ export const DashboardHome: React.FC = () => {
             </p>
           </div>
         </section>
+
+        {/* Student Achievements Badges Panel */}
+        {user?.role === UserRole.STUDENT && (
+          <section className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm text-left">
+            <BadgesList unlockedBadges={profile?.badges || []} />
+          </section>
+        )}
 
         {/* Stats Grid */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
