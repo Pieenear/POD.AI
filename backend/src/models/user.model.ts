@@ -68,7 +68,6 @@ const UserSchema = new Schema<IUserDocument>(
 );
 
 // Indexes
-UserSchema.index({ email: 1 });
 UserSchema.index({ verificationToken: 1 });
 UserSchema.index({ resetPasswordToken: 1 });
 

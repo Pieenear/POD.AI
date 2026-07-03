@@ -163,7 +163,6 @@ const StudentProfileSchema = new Schema<IStudentProfile>(
 );
 
 // Indexes
-StudentProfileSchema.index({ userId: 1 });
 StudentProfileSchema.index({ skills: 1 });
 
 export const StudentProfile = mongoose.model<IStudentProfile>('StudentProfile', StudentProfileSchema);

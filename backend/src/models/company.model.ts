@@ -58,7 +58,6 @@ const CompanySchema = new Schema<ICompanyDocument>(
   }
 );
 
-CompanySchema.index({ userId: 1 });
 CompanySchema.index({ isVerified: 1 });
 
 export const Company = mongoose.model<ICompanyDocument>('Company', CompanySchema);
