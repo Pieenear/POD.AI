@@ -39,6 +39,8 @@ export const Login: React.FC = () => {
       const userProfile = await login(data.email, data.password);
       if (userProfile.role === UserRole.EMPLOYER || userProfile.role === UserRole.RECRUITER) {
         navigate('/employer', { replace: true });
+      } else if (userProfile.role === UserRole.PLACEMENT_OFFICER || userProfile.role === UserRole.COLLEGE_ADMIN) {
+        navigate('/officer', { replace: true });
       } else {
         navigate(from, { replace: true });
       }
