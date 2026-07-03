@@ -5,7 +5,9 @@ import { Login } from '../pages/auth/Login';
 import { Register } from '../pages/auth/Register';
 import { DashboardHome } from '../pages/dashboard/DashboardHome';
 import { StudentProfile } from '../pages/student/StudentProfile';
+import { EmployerDashboard } from '../pages/employer/EmployerDashboard';
 import { ProtectedRoute } from '../components/shared/ProtectedRoute';
+import { UserRole } from '../context/AuthContext';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -20,6 +22,10 @@ export const AppRouter: React.FC = () => {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/profile" element={<StudentProfile />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRole.EMPLOYER, UserRole.RECRUITER]} />}>
+          <Route path="/employer" element={<EmployerDashboard />} />
         </Route>
 
         {/* Fallback Redirect */}

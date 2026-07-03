@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, UserRole } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
 import { Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
 
@@ -36,8 +36,12 @@ export const Login: React.FC = () => {
     setErrorMsg(null);
     setIsSubmitting(true);
     try {
-      await login(data.email, data.password);
-      navigate(from, { replace: true });
+      const userProfile = await login(data.email, data.password);
+      if (userProfile.role === UserRole.EMPLOYER || userProfile.role === UserRole.RECRUITER) {
+        navigate('/employer', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Invalid email or password. Please try again.');
     } finally {
