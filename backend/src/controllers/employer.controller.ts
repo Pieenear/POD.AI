@@ -500,4 +500,59 @@ export class EmployerController {
       next(error);
     }
   }
+
+  /**
+   * Uploads verification documents (GST, PAN, Incorporation) for corporate status validation.
+   */
+  public static async uploadVerificationDoc(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const { docType } = req.body;
+      if (!docType || !['GST', 'PAN', 'Incorporation', 'Other'].includes(docType)) {
+        throw new BadRequestError('Invalid or missing document type (GST, PAN, Incorporation, Other).');
+      }
+
+      let fileUrl = '';
+      let fileName = 'doc.pdf';
+
+      if (req.file) {
+        fileUrl = `/uploads/verification-docs/${req.file.filename}`;
+        fileName = req.file.originalname;
+      } else if (req.body.docUrl) {
+        fileUrl = req.body.docUrl;
+        fileName = req.body.fileName || 'doc.pdf';
+      } else {
+        throw new BadRequestError('No document file or URL provided.');
+      }
+
+      const company = await Company.findOne({ userId: req.user.userId });
+      if (!company) {
+        throw new NotFoundError('Company profile not found.');
+      }
+
+      if (!company.verificationDocs) {
+        company.verificationDocs = [];
+      }
+
+      company.verificationDocs.push({
+        docType,
+        url: fileUrl,
+        fileName,
+        uploadedAt: new Date()
+      });
+
+      await company.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification document uploaded successfully.',
+        data: { company }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -9,6 +10,8 @@ import { errorHandler } from './middlewares/error.middleware';
 import apiRoutes from './routes';
 
 const app = express();
+
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Secure headers
 app.use(helmet());

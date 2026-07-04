@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
@@ -763,9 +764,17 @@ export const StudentProfile: React.FC = () => {
         {/* Tab 2: Resume versions Hub Tab */}
         {activeTab === 'resume' && (
           <div className="bg-white dark:bg-slate-900 border p-8 rounded-2xl max-w-3xl mx-auto text-left space-y-8 shadow-sm">
-            <div className="border-b pb-4">
-              <h3 className="text-xl font-bold">Resume Version Manager</h3>
-              <p className="text-sm text-muted-foreground">Upload your latest PDF CV drafts to version history. The AI scores every upload.</p>
+            <div className="flex justify-between items-center border-b pb-4">
+              <div>
+                <h3 className="text-xl font-bold">Resume Version Manager</h3>
+                <p className="text-sm text-muted-foreground">Upload your latest PDF CV drafts to version history. The AI scores every upload.</p>
+              </div>
+              <Link
+                to="/profile/resume-builder"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 text-xs font-semibold gap-1.5 shadow-sm shadow-indigo-650/10 shrink-0"
+              >
+                Launch Builder Canvas
+              </Link>
             </div>
 
             {/* Upload Zone */}

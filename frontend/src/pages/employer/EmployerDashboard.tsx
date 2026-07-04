@@ -21,7 +21,8 @@ import {
   FileText,
   Clock,
   LogOut,
-  Users
+  Users,
+  Upload
 } from 'lucide-react';
 
 export const EmployerDashboard: React.FC = () => {
@@ -53,6 +54,8 @@ export const EmployerDashboard: React.FC = () => {
   const [website, setWebsite] = useState('');
   const [industry, setIndustry] = useState('');
   const [location, setLocation] = useState('');
+  const [docType, setDocType] = useState<'GST' | 'PAN' | 'Incorporation' | 'Other'>('GST');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const fetchCompanyData = async () => {
     try {
@@ -154,6 +157,28 @@ export const EmployerDashboard: React.FC = () => {
   const showNotice = (text: string, type: 'success' | 'error' = 'success') => {
     setNotification({ text, type });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleUploadDoc = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    const formData = new FormData();
+    formData.append('doc', file);
+    formData.append('docType', docType);
+
+    try {
+      setUploadingDoc(true);
+      const res = await api.post('/employer/company/verification-doc', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setCompany(res.data.data.company);
+      showNotice('Verification document uploaded successfully.');
+    } catch {
+      showNotice('Failed to upload verification document.', 'error');
+    } finally {
+      setUploadingDoc(false);
+    }
   };
 
   // Company Profile Update
@@ -605,6 +630,106 @@ export const EmployerDashboard: React.FC = () => {
                 >
                   Save Company Details
                 </button>
+              </div>
+            </div>
+            
+            {/* Corporate Verification Section */}
+            <div className="bg-white dark:bg-slate-900 border p-8 rounded-2xl max-w-2xl mx-auto text-left space-y-6 shadow-sm mt-6">
+              <div className="border-b pb-4 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold">Corporate Verification Credentials</h3>
+                  <p className="text-xs text-muted-foreground">Upload incorporation certificates or tax forms (GST/PAN) to obtain verified partner status.</p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border shrink-0 ${
+                  company?.isVerified 
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-250 dark:bg-emerald-950/20' 
+                    : 'bg-amber-50 text-amber-600 border-amber-250 dark:bg-amber-950/20'
+                }`}>
+                  {company?.isVerified ? (
+                    <>
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      Verified Partner
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Pending Approval
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Upload Document Form */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Select Document Type</label>
+                  <select
+                    value={docType}
+                    onChange={(e) => setDocType(e.target.value as any)}
+                    className="block w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs focus:outline-none"
+                  >
+                    <option value="GST">GST Registration Certificate</option>
+                    <option value="PAN">PAN Card Statement</option>
+                    <option value="Incorporation">Incorporation Certificate</option>
+                    <option value="Other">Other Identification Docs</option>
+                  </select>
+                </div>
+
+                <div className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/40 dark:bg-slate-900/5 hover:bg-slate-50 transition-colors relative group">
+                  <input
+                    type="file"
+                    disabled={uploadingDoc}
+                    onChange={handleUploadDoc}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-650 flex items-center justify-center mb-3">
+                    {uploadingDoc ? <Clock className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold">{uploadingDoc ? 'Uploading...' : 'Click to Upload Document File'}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">PDF, PNG, or JPG (Max 5MB)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Uploaded Documents List */}
+              <div className="space-y-3 pt-2">
+                <h4 className="font-bold text-xs">Uploaded Verification Documents</h4>
+                <div className="border rounded-xl bg-background overflow-hidden">
+                  {company?.verificationDocs && company.verificationDocs.length > 0 ? (
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-100/50 dark:bg-slate-800/50 text-[9px] uppercase font-bold text-muted-foreground">
+                        <tr>
+                          <th className="px-4 py-2">Doc Type</th>
+                          <th className="px-4 py-2">File Name</th>
+                          <th className="px-4 py-2">Uploaded At</th>
+                          <th className="px-4 py-2 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {company.verificationDocs.map((doc: any, index: number) => (
+                          <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
+                            <td className="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400">{doc.docType}</td>
+                            <td className="px-4 py-3 text-slate-500 max-w-[150px] truncate">{doc.fileName}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{new Date(doc.uploadedAt).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-right">
+                              <a
+                                href={`http://localhost:5000${doc.url}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex h-7 items-center justify-center rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-850/70 dark:hover:bg-slate-800 px-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-250 gap-0.5"
+                              >
+                                View doc
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="p-6 text-center text-[10px] text-muted-foreground">No verification documents uploaded.</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

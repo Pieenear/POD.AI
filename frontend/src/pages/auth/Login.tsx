@@ -92,8 +92,8 @@ export const Login: React.FC = () => {
                   id="email"
                   type="email"
                   disabled={isSubmitting}
-                  className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
-                    errors.email ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
+                  className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg bg-indigo-50/10 dark:bg-indigo-950/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
+                    errors.email ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-500/10' : 'border-slate-200 dark:border-indigo-900/50'
                   }`}
                   placeholder="name@university.edu"
                   {...register('email')}
@@ -122,8 +122,8 @@ export const Login: React.FC = () => {
                   id="password"
                   type="password"
                   disabled={isSubmitting}
-                  className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
-                    errors.password ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
+                  className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg bg-indigo-50/10 dark:bg-indigo-950/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
+                    errors.password ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-500/10' : 'border-slate-200 dark:border-indigo-900/50'
                   }`}
                   placeholder="••••••••"
                   {...register('password')}

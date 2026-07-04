@@ -1,9 +1,41 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { EmployerController } from '../controllers/employer.controller';
 import { requireAuth, requireRoles } from '../middlewares/auth.middleware';
 import { UserRole } from '../models/user.model';
 
 const router = Router();
+
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, '../../uploads/verification-docs');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Multer Storage config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `doc-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== '.pdf' && ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+      return cb(new Error('Only PDF, PNG, and JPG files are allowed') as any, false);
+    }
+    cb(null, true);
+  }
+});
 
 // Gate routes to Employers and Recruiters only
 router.use(requireAuth);
@@ -11,6 +43,7 @@ router.use(requireRoles(UserRole.EMPLOYER, UserRole.RECRUITER));
 
 router.get('/company', EmployerController.getCompanyProfile);
 router.put('/company', EmployerController.updateCompanyProfile);
+router.post('/company/verification-doc', upload.single('doc'), EmployerController.uploadVerificationDoc);
 
 router.get('/jobs', EmployerController.getJobs);
 router.post('/jobs', EmployerController.createJob);

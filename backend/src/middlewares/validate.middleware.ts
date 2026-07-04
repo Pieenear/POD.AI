@@ -12,8 +12,8 @@ export const validateRequest = (schema: ZodSchema) => {
       
       // Assign parsed data back to req to have fully typed validated schemas
       req.body = parsed.body;
-      req.query = parsed.query;
-      req.params = parsed.params;
+      Object.defineProperty(req, 'query', { value: parsed.query, writable: true, configurable: true });
+      Object.defineProperty(req, 'params', { value: parsed.params, writable: true, configurable: true });
       
       next();
     } catch (error) {

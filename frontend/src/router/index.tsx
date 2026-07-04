@@ -10,6 +10,9 @@ import { ForumBoard } from '../pages/forum/ForumBoard';
 import { MentorshipBoard } from '../pages/mentorship/MentorshipBoard';
 import { EmployerDashboard } from '../pages/employer/EmployerDashboard';
 import { OfficerDashboard } from '../pages/officer/OfficerDashboard';
+import { AssessmentBuilder } from '../pages/officer/AssessmentBuilder';
+import { AssessmentPortal } from '../pages/student/AssessmentPortal';
+import { ResumeEditor } from '../pages/student/ResumeEditor';
 import { ProtectedRoute } from '../components/shared/ProtectedRoute';
 import { UserRole } from '../context/AuthContext';
 
@@ -32,6 +35,8 @@ export const AppRouter: React.FC = () => {
 
         <Route element={<ProtectedRoute allowedRoles={[UserRole.STUDENT]} />}>
           <Route path="/jobs" element={<StudentJobs />} />
+          <Route path="/assessments/:id" element={<AssessmentPortal />} />
+          <Route path="/profile/resume-builder" element={<ResumeEditor />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={[UserRole.EMPLOYER, UserRole.RECRUITER]} />}>
@@ -40,6 +45,7 @@ export const AppRouter: React.FC = () => {
 
         <Route element={<ProtectedRoute allowedRoles={[UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN]} />}>
           <Route path="/officer" element={<OfficerDashboard />} />
+          <Route path="/assessments/builder" element={<AssessmentBuilder />} />
         </Route>
 
         {/* Fallback Redirect */}

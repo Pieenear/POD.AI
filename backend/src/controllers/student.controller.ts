@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
 import { StudentProfile } from '../models/student.model';
 import { AiService } from '../services/ai.service';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
@@ -6,6 +7,7 @@ import { Job } from '../models/job.model';
 import { Application } from '../models/application.model';
 import { Interview } from '../models/interview.model';
 import { Notice } from '../models/notice.model';
+import { ResumeParser } from '../utils/resumeParser';
 
 export class StudentController {
   /**
@@ -154,6 +156,53 @@ export class StudentController {
       profile.resumeUrl = fileUrl;
       profile.resumeVersions.push(newVersion);
 
+      // Parse uploaded PDF file heuristic characteristics
+      if (req.file) {
+        try {
+          const filePath = req.file.path;
+          const buffer = fs.readFileSync(filePath);
+          const rawText = ResumeParser.parsePdfText(buffer);
+          const parsed = ResumeParser.heuristicParse(rawText);
+
+          // Merge extracted skills
+          if (parsed.skills.length > 0) {
+            const existingSkills = profile.skills.map(s => s.toLowerCase());
+            parsed.skills.forEach(skill => {
+              if (!existingSkills.includes(skill.toLowerCase())) {
+                profile.skills.push(skill);
+              }
+            });
+          }
+
+          // Pre-fill headline
+          if (!profile.headline || profile.headline === 'Aspiring Developer') {
+            profile.headline = parsed.headline;
+          }
+
+          // Pre-fill education branch/CGPA
+          if (profile.education.length === 0) {
+            profile.education.push({
+              institution: 'State University College',
+              degree: parsed.degree,
+              fieldOfStudy: parsed.branch,
+              startDate: new Date(2022, 6, 1),
+              endDate: new Date(2026, 5, 30),
+              current: false,
+              grade: parsed.cgpa
+            });
+          } else {
+            if (!profile.education[0].grade || profile.education[0].grade === '0') {
+              profile.education[0].grade = parsed.cgpa;
+            }
+            if (!profile.education[0].fieldOfStudy) {
+              profile.education[0].fieldOfStudy = parsed.branch;
+            }
+          }
+        } catch (parseErr) {
+          console.error('Heuristic resume parsing failed:', parseErr);
+        }
+      }
+
       // Re-run AI analysis
       const aiReviewResult = await AiService.analyzeProfile(profile);
       profile.aiReview = {
@@ -172,7 +221,7 @@ export class StudentController {
 
       res.status(200).json({
         success: true,
-        message: 'Resume version uploaded and scored.',
+        message: 'Resume version uploaded, parsed, and AI-scored successfully.',
         data: {
           profile
         }

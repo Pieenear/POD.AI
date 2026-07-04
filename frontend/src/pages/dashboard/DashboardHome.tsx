@@ -9,12 +9,19 @@ import { LogOut, GraduationCap, Building2, Briefcase, Network, Cpu, FileText, Ch
 export const DashboardHome: React.FC = () => {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [assessments, setAssessments] = useState<any[]>([]);
 
   useEffect(() => {
     if (user?.role === UserRole.STUDENT) {
       api.get('/student/profile')
         .then((res) => {
           setProfile(res.data.data.profile);
+        })
+        .catch(() => {});
+
+      api.get('/assessments')
+        .then((res) => {
+          setAssessments(res.data.data.assessments || []);
         })
         .catch(() => {});
     }
@@ -149,6 +156,40 @@ export const DashboardHome: React.FC = () => {
         {user?.role === UserRole.STUDENT && (
           <section className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm text-left">
             <BadgesList unlockedBadges={profile?.badges || []} />
+          </section>
+        )}
+
+        {/* Student Active Assessments Panel */}
+        {user?.role === UserRole.STUDENT && assessments.length > 0 && (
+          <section className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm text-left space-y-4">
+            <div>
+              <h3 className="font-extrabold text-base flex items-center gap-1.5">
+                <Clock className="h-5 w-5 text-rose-500 animate-pulse" />
+                Pending Recruitment Assessments
+              </h3>
+              <p className="text-xs text-muted-foreground">Complete drive tests requested by corporate hiring managers.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {assessments.map((a) => (
+                <div key={a._id} className="p-4.5 border rounded-2xl flex flex-col justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/10 hover:border-slate-350 transition-colors">
+                  <div className="space-y-1">
+                    <p className="font-extrabold text-sm">{a.title}</p>
+                    <p className="text-[11px] font-semibold text-indigo-650 dark:text-indigo-400">{a.companyId?.name || 'Company'} — {a.jobId?.title || 'Job Drive'}</p>
+                    <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                      <span>Duration: {a.duration} mins</span>
+                      <span>•</span>
+                      <span>Pass Mark: {a.passingMarks}%</span>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/assessments/${a._id}`}
+                    className="inline-flex h-8 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-600/10 transition-colors w-28 shrink-0 text-center"
+                  >
+                    Start Test
+                  </Link>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 

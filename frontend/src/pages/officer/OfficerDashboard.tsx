@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
@@ -27,9 +28,10 @@ export const OfficerDashboard: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
+  const [assessments, setAssessments] = useState<any[]>([]);
   const [, setRules] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'students' | 'notices' | 'rules' | 'admin'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'students' | 'notices' | 'rules' | 'admin' | 'assessments'>('overview');
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Dialog controls
@@ -62,6 +64,10 @@ export const OfficerDashboard: React.FC = () => {
       // Notices
       const noticeRes = await api.get('/officer/notices');
       setNotices(noticeRes.data.data.notices || []);
+
+      // Assessments
+      const assessRes = await api.get('/assessments');
+      setAssessments(assessRes.data.data.assessments || []);
 
       // Rules
       const rulesRes = await api.get('/officer/rules');
@@ -285,6 +291,14 @@ export const OfficerDashboard: React.FC = () => {
             >
               Criteria Rules
             </button>
+            <button
+              onClick={() => setActiveTab('assessments')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeTab === 'assessments' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              Assessments ({assessments.length})
+            </button>
             {(user?.role === UserRole.COLLEGE_ADMIN || user?.role === UserRole.SUPER_ADMIN) && (
               <button
                 onClick={() => setActiveTab('admin')}
@@ -467,6 +481,7 @@ export const OfficerDashboard: React.FC = () => {
                       <th className="px-6 py-3">Company Name</th>
                       <th className="px-6 py-3">Website</th>
                       <th className="px-6 py-3">Headquarters</th>
+                      <th className="px-6 py-3">Verification Docs</th>
                       <th className="px-6 py-3 text-right">Verification Action</th>
                     </tr>
                   </thead>
@@ -482,6 +497,26 @@ export const OfficerDashboard: React.FC = () => {
                           ) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 font-medium text-slate-500">{c.location || 'N/A'}</td>
+                        <td className="px-6 py-4">
+                          {c.verificationDocs && c.verificationDocs.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {c.verificationDocs.map((doc: any, i: number) => (
+                                <a
+                                  key={i}
+                                  href={`http://localhost:5000${doc.url}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={`Uploaded at ${new Date(doc.uploadedAt).toLocaleDateString()}`}
+                                  className="inline-flex px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-650 border border-indigo-150 dark:bg-indigo-950/20 dark:text-indigo-400 hover:bg-indigo-100 transition-colors"
+                                >
+                                  {doc.docType}
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[10px]">No documents</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => handleVerifyCompany(c._id, c.isVerified)}
@@ -729,6 +764,50 @@ export const OfficerDashboard: React.FC = () => {
         {activeTab === 'admin' && (user?.role === UserRole.COLLEGE_ADMIN || user?.role === UserRole.SUPER_ADMIN) && (
           <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm">
             <AdminUserManagement />
+          </div>
+        )}
+
+        {/* Tab 7: Assessments Management */}
+        {activeTab === 'assessments' && (
+          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-6 shadow-sm">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="text-lg font-bold">Recruitment Assessments</h3>
+                <p className="text-xs text-muted-foreground">Manage and launch MCQ and Coding examinations linked to jobs.</p>
+              </div>
+              <Link
+                to="/assessments/builder"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 text-xs font-semibold gap-1.5 shadow-sm shadow-indigo-600/10"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Create Assessment
+              </Link>
+            </div>
+
+            <div className="space-y-4">
+              {assessments.length > 0 ? (
+                assessments.map((a) => (
+                  <div key={a._id} className="border p-5 rounded-2xl hover:border-slate-350 dark:hover:border-slate-750 transition-colors flex justify-between items-center gap-4">
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-base">{a.title}</h4>
+                      <p className="text-xs text-indigo-650 dark:text-indigo-400 font-semibold">{a.companyId?.name || 'Company'} — {a.jobId?.title || 'Job Drive'}</p>
+                      <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider pt-0.5">
+                        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-650 dark:text-slate-300">Type: {a.type}</span>
+                        <span>•</span>
+                        <span>Duration: {a.duration} mins</span>
+                        <span>•</span>
+                        <span>Pass Mark: {a.passingMarks}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl flex flex-col items-center justify-center gap-1.5">
+                  <FileText className="h-8 w-8 text-slate-300" />
+                  No assessments configured yet.
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IVerificationDoc {
+  docType: 'GST' | 'PAN' | 'Incorporation' | 'Other';
+  url: string;
+  fileName: string;
+  uploadedAt: Date;
+}
+
 export interface ICompany {
   userId: mongoose.Types.ObjectId;
   name: string;
@@ -9,6 +16,7 @@ export interface ICompany {
   industry?: string;
   location?: string;
   isVerified: boolean;
+  verificationDocs?: IVerificationDoc[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,7 +59,28 @@ const CompanySchema = new Schema<ICompanyDocument>(
     isVerified: {
       type: Boolean,
       default: false
-    }
+    },
+    verificationDocs: [
+      {
+        docType: {
+          type: String,
+          enum: ['GST', 'PAN', 'Incorporation', 'Other'],
+          required: true
+        },
+        url: {
+          type: String,
+          required: true
+        },
+        fileName: {
+          type: String,
+          required: true
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ]
   },
   {
     timestamps: true
