@@ -121,10 +121,10 @@ export const ForumBoard: React.FC = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Link to="/dashboard" className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">CF</Link>
-            <span className="font-bold text-base">CareerFlow AI <span className="text-muted-foreground text-xs font-normal">Discussion Forum</span></span>
-          </div>
+          <Link to="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">CF</div>
+            <span className="font-bold text-base text-foreground">CareerFlow AI <span className="text-muted-foreground text-xs font-normal">Discussion Forum</span></span>
+          </Link>
 
           <div className="flex items-center gap-4">
             <Link

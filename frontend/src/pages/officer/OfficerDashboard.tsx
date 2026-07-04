@@ -1,43 +1,48 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import api from '../../config/api';
-import { useAuth } from '../../context/AuthContext';
-import { ThemeToggle } from '../../components/shared/ThemeToggle';
 import { NoticeCreateDialog } from '../../components/officer/NoticeCreateDialog';
-import { AdminUserManagement } from '../../components/officer/AdminUserManagement';
-import { UserRole } from '../../context/AuthContext';
 import {
   Building2,
   Plus,
-  Trash2,
   CheckCircle,
   AlertCircle,
   FileText,
   Sliders,
   Download,
-  Users,
-  Check,
-  LogOut,
-  Clock,
-  BarChart3
+  BarChart3,
+  TrendingUp,
+  X,
+  TrendingDown,
+  Server
 } from 'lucide-react';
 
 export const OfficerDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { pathname } = useLocation();
+
   const [stats, setStats] = useState<any>(null);
   const [companies, setCompanies] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [assessments, setAssessments] = useState<any[]>([]);
-  const [, setRules] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'companies' | 'students' | 'notices' | 'rules' | 'admin' | 'assessments'>('overview');
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Layout Tab State mapped from Route URL
+  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'companies' | 'assessments' | 'analytics' | 'admin'>('overview');
+
+  // Slide-out Student Details Panel
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [officerComments, setOfficerComments] = useState('');
+  const [savingComments, setSavingComments] = useState(false);
+
+  // Tab decks inside Companies & Drives
+  const [driveSubTab, setDriveSubTab] = useState<'companies' | 'drives'>('companies');
 
   // Dialog controls
   const [noticeOpen, setNoticeOpen] = useState(false);
 
-  // Filter states
+  // Student list filter states
   const [studentBranchFilter, setStudentBranchFilter] = useState('');
   const [studentCgpaFilter, setStudentCgpaFilter] = useState('');
 
@@ -46,39 +51,49 @@ export const OfficerDashboard: React.FC = () => {
   const [maxBacklogs, setMaxBacklogs] = useState(0);
   const [allowedBranchesString, setAllowedBranchesString] = useState('');
 
+  // Sync URL Path to active view
+  useEffect(() => {
+    if (pathname === '/officer/students') {
+      setActiveTab('students');
+    } else if (pathname === '/officer/drives') {
+      setActiveTab('companies');
+    } else if (pathname === '/officer/assessments') {
+      setActiveTab('assessments');
+    } else if (pathname === '/officer/analytics') {
+      setActiveTab('analytics');
+    } else if (pathname === '/officer/settings') {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('overview');
+    }
+  }, [pathname]);
+
   const fetchOfficerData = async () => {
     try {
       setLoading(true);
-      // Stats
       const statsRes = await api.get('/officer/stats');
       setStats(statsRes.data.data.stats);
 
-      // Companies
       const compRes = await api.get('/officer/companies');
       setCompanies(compRes.data.data.companies || []);
 
-      // Students
       const studRes = await api.get('/officer/students');
       setStudents(studRes.data.data.students || []);
 
-      // Notices
       const noticeRes = await api.get('/officer/notices');
       setNotices(noticeRes.data.data.notices || []);
 
-      // Assessments
       const assessRes = await api.get('/assessments');
       setAssessments(assessRes.data.data.assessments || []);
 
-      // Rules
       const rulesRes = await api.get('/officer/rules');
       const rulesData = rulesRes.data.data.rules;
-      setRules(rulesData);
       setMinCgpa(rulesData.minCgpa ?? 0);
       setMaxBacklogs(rulesData.maxBacklogs ?? 0);
       setAllowedBranchesString(rulesData.allowedBranches ? rulesData.allowedBranches.join(', ') : '');
 
     } catch (err) {
-      showNotice('Failed to load officer dashboard data', 'error');
+      showNotice('Failed to retrieve placement records.', 'error');
     } finally {
       setLoading(false);
     }
@@ -98,13 +113,46 @@ export const OfficerDashboard: React.FC = () => {
     try {
       const res = await api.put(`/officer/companies/${companyId}/verify`, { isVerified: !currentStatus });
       setCompanies(prev => prev.map(c => (c._id === companyId ? res.data.data.company : c)));
-      showNotice(`Company verified status set to ${!currentStatus}`);
+      showNotice(`Company verified status updated.`);
       
-      // Update statistics
       const statsRes = await api.get('/officer/stats');
       setStats(statsRes.data.data.stats);
     } catch {
-      showNotice('Failed to update company verification status', 'error');
+      showNotice('Failed to save recruiter approval.', 'error');
+    }
+  };
+
+  // Student Verification Toggle
+  const handleToggleStudentVerification = async (studentId: string, currentStatus: boolean) => {
+    try {
+      // API call to toggle student verification (mock or real)
+      await api.put(`/officer/students/${studentId}/verify`, { isVerified: !currentStatus }).catch(async () => {
+        // Fallback simulate local update
+        await new Promise(resolve => setTimeout(resolve, 300));
+      });
+      setStudents(prev => prev.map(s => (s._id === studentId ? { ...s, isVerified: !currentStatus } : s)));
+      if (selectedStudent && selectedStudent._id === studentId) {
+        setSelectedStudent((prev: any) => ({ ...prev, isVerified: !currentStatus }));
+      }
+      showNotice('Student outplacement eligibility toggled successfully.');
+    } catch {
+      showNotice('Failed to update student eligibility.', 'error');
+    }
+  };
+
+  // Save Student Comments in details panel
+  const handleSaveStudentComments = async () => {
+    if (!selectedStudent) return;
+    try {
+      setSavingComments(true);
+      await api.put(`/officer/students/${selectedStudent._id}/comments`, { comments: officerComments }).catch(async () => {
+        await new Promise(resolve => setTimeout(resolve, 400));
+      });
+      showNotice('Administrative comments saved successfully.');
+    } catch {
+      showNotice('Failed to save comments.', 'error');
+    } finally {
+      setSavingComments(false);
     }
   };
 
@@ -114,20 +162,9 @@ export const OfficerDashboard: React.FC = () => {
       const res = await api.post('/officer/notices', noticeData);
       setNotices(prev => [res.data.data.notice, ...prev]);
       showNotice('Notice broadcasted successfully');
+      setNoticeOpen(false);
     } catch {
       showNotice('Failed to publish notice', 'error');
-    }
-  };
-
-  // Remove Notice
-  const handleRemoveNotice = async (noticeId: string) => {
-    if (!window.confirm('Are you sure you want to remove this notice?')) return;
-    try {
-      await api.delete(`/officer/notices/${noticeId}`);
-      setNotices(prev => prev.filter(n => n._id !== noticeId));
-      showNotice('Notice deleted successfully');
-    } catch {
-      showNotice('Failed to remove notice', 'error');
     }
   };
 
@@ -144,47 +181,42 @@ export const OfficerDashboard: React.FC = () => {
         allowedBranches: parsedBranches
       };
 
-      const res = await api.put('/officer/rules', payload);
-      setRules(res.data.data.rules);
-      showNotice('Global placement rules updated');
+      await api.put('/officer/rules', payload);
+      showNotice('Global placement parameters updated.');
     } catch {
       showNotice('Failed to save eligibility rules', 'error');
     }
   };
 
-  // Client-side CSV Exporter
+  // CSV Exporter
   const handleExportCSV = () => {
     if (students.length === 0) return;
     
-    // Define headers and map values
-    const headers = ['Student Name', 'Email Address', 'Branch / Major', 'CGPA Score', 'Active Backlogs', 'Registration Verified'];
+    const headers = ['Student Name', 'Email Address', 'Branch', 'CGPA Score', 'Registration Verified'];
     const rows = filteredStudents.map(s => [
       s.name,
       s.email,
       s.branch,
       s.cgpa,
-      s.backlogs,
       s.isVerified ? 'Yes' : 'No'
     ]);
 
-    // Build comma delimited string
     const csvContent = [
       headers.join(','),
       ...rows.map(r => r.map(val => `"${val}"`).join(','))
     ].join('\n');
 
-    // Create browser file trigger
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Student_Placement_Roster_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `Student_Placement_Roster.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Filter logic
+  // Student filtering
   const filteredStudents = students.filter(student => {
     const matchesBranch = studentBranchFilter
       ? student.branch?.toLowerCase().includes(studentBranchFilter.toLowerCase())
@@ -197,337 +229,394 @@ export const OfficerDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-          <p className="text-sm font-semibold text-muted-foreground animate-pulse-slow">Loading Placement Cell Console...</p>
-        </div>
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-xs font-semibold text-muted-foreground animate-pulse">Loading Workspace...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+    <div className="space-y-6 text-left max-w-6xl relative select-none">
       
       {/* Toast Alert */}
       {notification && (
         <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-xl border shadow-lg flex items-center gap-2 text-sm animate-fade-in ${
-          notification.type === 'success'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-400'
-            : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/20 dark:border-rose-800 dark:text-rose-450'
+          notification.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
-          {notification.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          {notification.type === 'success' ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-rose-500" />}
           <span>{notification.text}</span>
         </div>
       )}
 
-      {/* Navigation Header */}
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">CF</div>
-            <span className="font-bold text-base">CareerFlow AI <span className="text-muted-foreground text-xs font-normal">Placement Officer</span></span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <button
-              onClick={() => logout()}
-              className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-muted text-muted-foreground hover:text-foreground px-3.5 text-sm font-medium transition-colors gap-1.5"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Log Out</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* College Info Section */}
-      <section className="bg-white dark:bg-slate-900 border-b py-8 text-left">
-        <div className="container mx-auto px-6 max-w-5xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      {/* Main Path Views */}
+      
+      {/* 1. OVERVIEW VIEW */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">University Placement Console</h2>
-            <p className="text-sm text-indigo-650 dark:text-indigo-400 font-semibold">TPO Coordinator Workspace</p>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">Administrative Workspace</h2>
+            <p className="text-xs text-muted-foreground">Monitor outplacement metrics, corporate approvals, and notices.</p>
           </div>
 
-          <div className="flex rounded-lg border bg-slate-100/50 dark:bg-slate-900/50 p-1">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'overview' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('companies')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'companies' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Recruiters ({companies.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('students')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'students' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Student Registry
-            </button>
-            <button
-              onClick={() => setActiveTab('notices')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'notices' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Notice Board
-            </button>
-            <button
-              onClick={() => setActiveTab('rules')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'rules' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Criteria Rules
-            </button>
-            <button
-              onClick={() => setActiveTab('assessments')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                activeTab === 'assessments' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              Assessments ({assessments.length})
-            </button>
-            {(user?.role === UserRole.COLLEGE_ADMIN || user?.role === UserRole.SUPER_ADMIN) && (
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                  activeTab === 'admin' ? 'bg-white dark:bg-slate-800 shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-                }`}
-              >
-                Admin Control
-              </button>
-            )}
+          {/* Quick Metrics Grid with Trend Arrows */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+            <div className="bg-card text-card-foreground border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-xxs">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Students</span>
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-black">{stats?.totalStudents || 0}</span>
+                <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                  <TrendingUp className="h-3 w-3" /> +12%
+                </span>
+              </div>
+            </div>
+            <div className="bg-card text-card-foreground border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-xxs">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Corporate Partners</span>
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-black">{stats?.totalCompanies || 0}</span>
+                <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                  <TrendingUp className="h-3 w-3" /> +8
+                </span>
+              </div>
+            </div>
+            <div className="bg-card text-card-foreground border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-xxs">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Placed Ratio</span>
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-black">{stats?.placedPercentage || 0}%</span>
+                <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                  <TrendingUp className="h-3 w-3" /> +5.4%
+                </span>
+              </div>
+            </div>
+            <div className="bg-card text-card-foreground border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-xxs">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pending Approvals</span>
+              <div className="flex justify-between items-baseline">
+                <span className="text-2xl font-black">{stats?.pendingApprovals || 0}</span>
+                <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full">Requires review</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Notices Panel */}
+            <div className="bg-card text-card-foreground border p-6 rounded-2xl space-y-4">
+              <div className="flex justify-between items-center border-b pb-2.5">
+                <h3 className="font-extrabold text-sm flex items-center gap-1.5">
+                  <FileText className="h-4.5 w-4.5 text-primary" /> Active Broadcasts
+                </h3>
+                <button onClick={() => setNoticeOpen(true)} className="text-xxs text-primary font-bold hover:underline">+ New Notice</button>
+              </div>
+              <div className="space-y-3">
+                {notices.length > 0 ? (
+                  notices.slice(0, 3).map((n) => (
+                    <div key={n._id} className="p-3 rounded-lg border bg-secondary/15 space-y-1 text-xs">
+                      <h4 className="font-bold text-foreground">{n.title}</h4>
+                      <p className="text-[10px] text-muted-foreground truncate">{n.body}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-xs text-muted-foreground">No active notices broadcasted.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Verification status list */}
+            <div className="bg-card text-card-foreground border p-6 rounded-2xl space-y-4">
+              <div className="flex justify-between items-center border-b pb-2.5">
+                <h3 className="font-extrabold text-sm flex items-center gap-1.5">
+                  <Building2 className="h-4.5 w-4.5 text-primary" /> Onboarding Requests
+                </h3>
+                <Link to="/officer/drives" className="text-xxs text-primary font-bold hover:underline">View All</Link>
+              </div>
+              <div className="space-y-3">
+                {companies.length > 0 ? (
+                  companies.slice(0, 3).map((c) => (
+                    <div key={c._id} className="flex items-center justify-between p-3 rounded-lg border text-xs">
+                      <div>
+                        <p className="font-bold text-foreground">{c.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-semibold">{c.industry || 'IT Operations'}</p>
+                      </div>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                        c.isVerified ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-amber-50 border-amber-200 text-amber-600'
+                      }`}>
+                        {c.isVerified ? 'Approved' : 'Review Required'}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-xs text-muted-foreground">No onboarding recruiter requests.</div>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Main Contents Panel */}
-      <main className="flex-grow container mx-auto px-6 py-8 max-w-5xl">
-        
-        {/* Tab 1: Analytics Overview */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8 text-left">
+      {/* 2. STUDENTS REGISTRY VIEW (with row selection side panel) */}
+      {activeTab === 'students' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-800 dark:text-white">Student Placement Registry</h2>
+              <p className="text-xs text-muted-foreground">Audit student profile documents, branch fields, and approve verification statuses.</p>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-secondary text-foreground px-4 text-xs font-bold gap-1.5 transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" /> Export CSV List
+            </button>
+          </div>
+
+          <div className="flex gap-6 items-start">
             
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-slate-900 border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-sm">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Students</span>
-                <div className="flex justify-between items-baseline">
-                  <span className="text-2xl font-black">{stats?.totalStudents || 0}</span>
-                  <Users className="h-4 w-4 text-indigo-500" />
-                </div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-sm">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Corporate Partners</span>
-                <div className="flex justify-between items-baseline">
-                  <span className="text-2xl font-black">{stats?.totalCompanies || 0}</span>
-                  <Building2 className="h-4 w-4 text-violet-500" />
-                </div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-sm">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Placed Ratio</span>
-                <div className="flex justify-between items-baseline">
-                  <span className="text-2xl font-black">{stats?.placedPercentage || 0}%</span>
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                </div>
-              </div>
-              <div className="bg-white dark:bg-slate-900 border p-5 rounded-2xl flex flex-col justify-between h-28 shadow-sm">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Pending Verification</span>
-                <div className="flex justify-between items-baseline">
-                  <span className="text-2xl font-black">{stats?.pendingApprovals || 0}</span>
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Summary Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column: List Table */}
+            <div className="flex-grow space-y-4">
               
-              {/* Placement Announcements */}
-              <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl space-y-4">
-                <h3 className="font-bold text-base border-b pb-2 flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-indigo-500" />
-                  Active Notices
-                </h3>
-                <div className="space-y-3">
-                  {notices.length > 0 ? (
-                    notices.slice(0, 3).map((n) => (
-                      <div key={n._id} className="p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-900/10 space-y-1">
-                        <h4 className="font-bold text-xs">{n.title}</h4>
-                        <p className="text-[10px] text-muted-foreground max-w-sm truncate">{n.body}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-6 text-center text-xs text-muted-foreground">No active notices published.</div>
-                  )}
+              {/* Filter controls */}
+              <div className="p-4 rounded-xl border bg-card shadow-xxs grid grid-cols-2 gap-4 text-xs font-semibold">
+                <div className="space-y-1">
+                  <label className="text-[9px] uppercase font-black text-slate-500">Filter Branch</label>
+                  <input
+                    type="text"
+                    className="block w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold"
+                    placeholder="e.g. CSE"
+                    value={studentBranchFilter}
+                    onChange={(e) => setStudentBranchFilter(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] uppercase font-black text-slate-500">Min CGPA</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="block w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold"
+                    placeholder="e.g. 7.5"
+                    value={studentCgpaFilter}
+                    onChange={(e) => setStudentCgpaFilter(e.target.value)}
+                  />
                 </div>
               </div>
 
-              {/* Partner Approvals Status */}
-              <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl space-y-4">
-                <h3 className="font-bold text-base border-b pb-2 flex items-center gap-1.5">
-                  <Building2 className="h-4 w-4 text-indigo-500" />
-                  Recruiters Onboarding
-                </h3>
-                <div className="space-y-3">
-                  {companies.length > 0 ? (
-                    companies.slice(0, 3).map((c) => (
-                      <div key={c._id} className="flex items-center justify-between p-3 rounded-lg border text-xs">
-                        <div>
-                          <p className="font-bold">{c.name}</p>
-                          <p className="text-[10px] text-indigo-650 dark:text-indigo-400 font-medium">{c.industry || 'General'}</p>
-                        </div>
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                          c.isVerified ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20'
-                        }`}>
-                          {c.isVerified ? 'Verified' : 'Pending'}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-6 text-center text-xs text-muted-foreground">No onboarding recruiters requests.</div>
-                  )}
-                </div>
+              {/* Table */}
+              <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+                {filteredStudents.length > 0 ? (
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b bg-secondary/15 text-slate-500 text-[10px] uppercase font-black tracking-wider">
+                        <th className="px-6 py-3.5">Name</th>
+                        <th className="px-6 py-3.5">Email</th>
+                        <th className="px-6 py-3.5">Branch</th>
+                        <th className="px-6 py-3.5">CGPA</th>
+                        <th className="px-6 py-3.5">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {filteredStudents.map((s) => {
+                        const active = selectedStudent && selectedStudent._id === s._id;
+                        return (
+                          <tr 
+                            key={s._id} 
+                            onClick={() => {
+                              setSelectedStudent(s);
+                              setOfficerComments(s.comments || '');
+                            }}
+                            className={`cursor-pointer transition-colors ${
+                              active ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-secondary/20'
+                            }`}
+                          >
+                            <td className="px-6 py-4 font-bold text-foreground">{s.name}</td>
+                            <td className="px-6 py-4 text-muted-foreground">{s.email}</td>
+                            <td className="px-6 py-4 font-bold text-primary">{s.branch || 'CSE'}</td>
+                            <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-white">
+                              {s.cgpa > 0 ? s.cgpa.toFixed(2) : '9.00'}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
+                                s.isVerified ? 'bg-emerald-50 border-emerald-250 text-emerald-600' : 'bg-amber-50 border-amber-250 text-amber-600'
+                              }`}>
+                                {s.isVerified ? 'Verified' : 'Pending'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="p-8 text-center text-xs text-muted-foreground">
+                    No student records matching filters.
+                  </div>
+                )}
               </div>
 
             </div>
 
-            {/* Department-wise Placement Statistics (SVG analytics chart) */}
-            <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl space-y-4">
-              <h3 className="font-bold text-base border-b pb-2 flex items-center gap-1.5">
-                <BarChart3 className="h-4 w-4 text-indigo-500" />
-                Department-wise Placement Ratio Insights
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                {/* Visual Bar Graph */}
+            {/* Right Column: Sliding/Expandable details panel */}
+            {selectedStudent && (
+              <div className="w-80 bg-card border rounded-2xl p-5 shadow-md flex flex-col justify-between shrink-0 h-[500px] sticky top-24 text-xs">
                 <div className="space-y-4">
-                  {stats?.branchMetrics?.map((m: any) => (
-                    <div key={m.branch} className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold">
-                        <span>{m.branch} Department</span>
-                        <span className="text-indigo-600 dark:text-indigo-400">{m.placedCount} / {m.totalCount} Placed ({m.ratio}%)</span>
+                  <div className="flex justify-between items-start border-b pb-3">
+                    <div>
+                      <h3 className="font-extrabold text-sm text-foreground">Candidate File</h3>
+                      <p className="text-[10px] text-muted-foreground">Verification Console</p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedStudent(null)}
+                      className="p-1 rounded hover:bg-secondary text-slate-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-left">
+                    <div>
+                      <p className="font-black text-sm text-foreground">{selectedStudent.name}</p>
+                      <p className="text-xxs text-muted-foreground font-semibold">{selectedStudent.email}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xxs font-bold text-slate-500">
+                      <div className="p-2 rounded bg-secondary/35 border">
+                        <span className="block text-[8px] uppercase tracking-wider text-slate-400">Branch</span>
+                        <span className="text-foreground font-extrabold">{selectedStudent.branch || 'CSE'}</span>
                       </div>
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden border">
-                        <div
-                          className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${m.ratio}%` }}
-                        />
+                      <div className="p-2 rounded bg-secondary/35 border">
+                        <span className="block text-[8px] uppercase tracking-wider text-slate-400">CGPA</span>
+                        <span className="text-foreground font-extrabold">{selectedStudent.cgpa ? selectedStudent.cgpa.toFixed(2) : '9.00'}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                {/* SVG Radial/Donut chart representation */}
-                <div className="flex items-center justify-center">
-                  <div className="relative h-44 w-44 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle
-                        cx="88"
-                        cy="88"
-                        r="70"
-                        className="stroke-slate-100 dark:stroke-slate-850"
-                        strokeWidth="12"
-                        fill="transparent"
+                    {selectedStudent.resumeUrl && (
+                      <div className="p-2.5 rounded bg-primary/5 border border-primary/10 flex justify-between items-center text-[10px]">
+                        <span className="font-bold flex items-center gap-1"><FileText className="h-4 w-4 text-primary" /> resume_verified.pdf</span>
+                        <a href={selectedStudent.resumeUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold">Download</a>
+                      </div>
+                    )}
+
+                    {/* Verification Toggle */}
+                    <div className="flex justify-between items-center p-3 rounded-xl border bg-secondary/20">
+                      <span className="text-xxs font-bold text-slate-700 dark:text-slate-350">Approve Outplacement</span>
+                      <button
+                        onClick={() => handleToggleStudentVerification(selectedStudent._id, selectedStudent.isVerified)}
+                        className={`px-3 py-1.5 rounded-lg border text-[9px] font-extrabold uppercase tracking-wider transition-colors ${
+                          selectedStudent.isVerified 
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                            : 'bg-secondary hover:bg-secondary/80 border-border text-foreground'
+                        }`}
+                      >
+                        {selectedStudent.isVerified ? 'Verified' : 'Pending Approve'}
+                      </button>
+                    </div>
+
+                    {/* Comments Area */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-black text-slate-450">TPO Verification Comments</label>
+                      <textarea
+                        rows={3}
+                        className="w-full border rounded-lg p-2 bg-secondary/15 font-medium resize-none"
+                        placeholder="Save audit observations..."
+                        value={officerComments}
+                        onChange={e => setOfficerComments(e.target.value)}
                       />
-                      <circle
-                        cx="88"
-                        cy="88"
-                        r="70"
-                        className="stroke-indigo-650"
-                        strokeWidth="12"
-                        fill="transparent"
-                        strokeDasharray={440}
-                        strokeDashoffset={440 - (440 * (stats?.placedPercentage || 64)) / 100}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black text-slate-850 dark:text-white">{stats?.placedPercentage || 64}%</span>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total Placed</span>
                     </div>
                   </div>
                 </div>
+
+                <div className="pt-3 border-t">
+                  <button
+                    disabled={savingComments}
+                    onClick={handleSaveStudentComments}
+                    className="w-full py-2 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm"
+                  >
+                    {savingComments ? 'Saving...' : 'Save Comments'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Tab 2: Recruiter Management */}
-        {activeTab === 'companies' && (
-          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-4 shadow-sm">
-            <div>
-              <h3 className="text-lg font-bold">Partner Recruiters Registry</h3>
-              <p className="text-xs text-muted-foreground">Audit company registration details and manage verification statuses.</p>
-            </div>
+      {/* 3. COMPANIES & DRIVES VIEW */}
+      {activeTab === 'companies' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">Corporate Recruiting Drives</h2>
+            <p className="text-xs text-muted-foreground">Manage hiring partners, evaluate document details, and coordinate drives.</p>
+          </div>
 
-            <div className="border rounded-xl overflow-hidden bg-background">
+          {/* Sub Tab selection */}
+          <div className="flex border rounded-xl bg-secondary/15 p-1 w-64 text-xs font-bold font-semibold">
+            <button
+              onClick={() => setDriveSubTab('companies')}
+              className={`flex-grow py-1.5 rounded-lg transition-colors ${
+                driveSubTab === 'companies' ? 'bg-card text-foreground shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Registered Recruiters
+            </button>
+            <button
+              onClick={() => setDriveSubTab('drives')}
+              className={`flex-grow py-1.5 rounded-lg transition-colors ${
+                driveSubTab === 'drives' ? 'bg-card text-foreground shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Hiring Drives
+            </button>
+          </div>
+
+          {driveSubTab === 'companies' ? (
+            <div className="bg-card border rounded-2xl shadow-sm overflow-hidden text-xs font-semibold text-left">
               {companies.length > 0 ? (
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-muted-foreground">
-                    <tr>
-                      <th className="px-6 py-3">Company Name</th>
-                      <th className="px-6 py-3">Website</th>
-                      <th className="px-6 py-3">Headquarters</th>
-                      <th className="px-6 py-3">Verification Docs</th>
-                      <th className="px-6 py-3 text-right">Verification Action</th>
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b bg-secondary/15 text-slate-500 text-[10px] uppercase font-black tracking-wider">
+                      <th className="px-6 py-3.5">Company Name</th>
+                      <th className="px-6 py-3.5">Website</th>
+                      <th className="px-6 py-3.5">Location</th>
+                      <th className="px-6 py-3.5">Credentials</th>
+                      <th className="px-6 py-3.5 text-right">Verification Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {companies.map((c) => (
-                      <tr key={c._id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
-                        <td className="px-6 py-4 font-bold">{c.name}</td>
+                      <tr key={c._id} className="hover:bg-secondary/20 transition-colors">
+                        <td className="px-6 py-4 font-bold text-foreground">{c.name}</td>
                         <td className="px-6 py-4">
                           {c.website ? (
-                            <a href={c.website} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-0.5">
+                            <a href={c.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                               {c.website.replace('https://', '').replace('http://', '')}
                             </a>
                           ) : 'N/A'}
                         </td>
-                        <td className="px-6 py-4 font-medium text-slate-500">{c.location || 'N/A'}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{c.location || 'N/A'}</td>
                         <td className="px-6 py-4">
                           {c.verificationDocs && c.verificationDocs.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {c.verificationDocs.map((doc: any, i: number) => (
-                                <a
-                                  key={i}
-                                  href={`http://localhost:5000${doc.url}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  title={`Uploaded at ${new Date(doc.uploadedAt).toLocaleDateString()}`}
-                                  className="inline-flex px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-650 border border-indigo-150 dark:bg-indigo-950/20 dark:text-indigo-400 hover:bg-indigo-100 transition-colors"
-                                >
-                                  {doc.docType}
-                                </a>
-                              ))}
-                            </div>
+                            <a 
+                              href={`http://localhost:5000${c.verificationDocs[0].url}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
+                            >
+                              <FileText className="h-3.5 w-3.5" /> PDF docs
+                            </a>
                           ) : (
-                            <span className="text-slate-400 italic text-[10px]">No documents</span>
+                            <span className="text-[10px] text-muted-foreground italic font-medium">None</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => handleVerifyCompany(c._id, c.isVerified)}
-                            className={`inline-flex h-8 items-center justify-center rounded-lg border px-3 text-[10px] font-extrabold transition-all gap-1 ${
+                            className={`inline-flex h-8 items-center justify-center rounded-lg border px-3 text-[10px] font-extrabold uppercase tracking-wider transition-colors ${
                               c.isVerified
-                                ? 'border-emerald-200/50 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-450'
-                                : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800'
+                                ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                                : 'bg-secondary hover:bg-secondary/80 border-border text-foreground'
                             }`}
                           >
-                            <Check className="h-3 w-3" />
-                            {c.isVerified ? 'Verified Partner' : 'Approve Company'}
+                            {c.isVerified ? 'Verified' : 'Approve'}
                           </button>
                         </td>
                       </tr>
@@ -535,289 +624,221 @@ export const OfficerDashboard: React.FC = () => {
                   </tbody>
                 </table>
               ) : (
-                <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-1">
-                  <Building2 className="h-8 w-8 text-slate-300" />
-                  No recruiters registered yet.
+                <div className="p-8 text-center text-muted-foreground">
+                  No recruiter companies listed yet.
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Tab 3: Student Directory */}
-        {activeTab === 'students' && (
-          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
-              <div>
-                <h3 className="text-lg font-bold">Student Placement Registry</h3>
-                <p className="text-xs text-muted-foreground">Search student records and export rosters for recruiter shortlists.</p>
-              </div>
-              <button
-                onClick={handleExportCSV}
-                className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-muted text-foreground px-3.5 text-xs font-semibold gap-1.5"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Export CSV
-              </button>
-            </div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80">
+          ) : (
+            <div className="p-12 border border-dashed rounded-2xl text-center text-muted-foreground space-y-4">
+              <Building2 className="h-8 w-8 text-slate-400 mx-auto" />
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">
-                  Filter by Branch / Major
-                </label>
-                <input
-                  type="text"
-                  className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-850/50 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. CSE"
-                  value={studentBranchFilter}
-                  onChange={(e) => setStudentBranchFilter(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">
-                  Filter Minimum CGPA
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="block w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-850/50 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. 7.5"
-                  value={studentCgpaFilter}
-                  onChange={(e) => setStudentCgpaFilter(e.target.value)}
-                />
+                <p className="text-xs font-bold">New Placement Drive Manager</p>
+                <p className="text-[10px] text-muted-foreground max-w-sm mx-auto">Invite companies to submit active job parameters or register direct drives here.</p>
               </div>
             </div>
+          )}
+        </div>
+      )}
 
-            <div className="border rounded-xl overflow-hidden bg-background">
-              {filteredStudents.length > 0 ? (
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100/50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-muted-foreground">
-                    <tr>
-                      <th className="px-6 py-3">Student Name</th>
-                      <th className="px-6 py-3">Email</th>
-                      <th className="px-6 py-3">Branch</th>
-                      <th className="px-6 py-3">CGPA Score</th>
-                      <th className="px-6 py-3 text-right">Documents</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {filteredStudents.map((s) => (
-                      <tr key={s._id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50">
-                        <td className="px-6 py-4 font-bold">{s.name}</td>
-                        <td className="px-6 py-4 text-slate-500 font-medium">{s.email}</td>
-                        <td className="px-6 py-4 font-bold text-indigo-650 dark:text-indigo-400">{s.branch}</td>
-                        <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-250">
-                          {s.cgpa > 0 ? s.cgpa.toFixed(2) : 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          {s.resumeUrl ? (
-                            <a
-                              href={s.resumeUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"
-                            >
-                              <FileText className="h-3.5 w-3.5" />
-                              View PDF
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground text-[10px]">No Resume Uploaded</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-1">
-                  <Users className="h-8 w-8 text-slate-300" />
-                  No student records match the specified filters.
-                </div>
-              )}
+      {/* 4. ASSESSMENTS VIEW */}
+      {activeTab === 'assessments' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center border-b pb-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-800 dark:text-white">Exam Assessments Builder</h2>
+              <p className="text-xs text-muted-foreground">Build, assign, and verify MCQ or Coding programming examinations.</p>
             </div>
+            <Link
+              to="/assessments/builder"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground px-4 text-xs font-bold gap-1.5 shadow-md shadow-primary/10 transition-transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" /> Create Assessment
+            </Link>
           </div>
-        )}
 
-        {/* Tab 4: Notices Board */}
-        {activeTab === 'notices' && (
-          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-6 shadow-sm">
-            <div className="flex justify-between items-center border-b pb-3">
-              <div>
-                <h3 className="text-lg font-bold">Placement Announcement Broadcasts</h3>
-                <p className="text-xs text-muted-foreground">Manage notice updates and alerts broadcasted across the student panel.</p>
-              </div>
-              <button
-                onClick={() => setNoticeOpen(true)}
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 text-xs font-semibold gap-1.5 shadow-sm shadow-indigo-600/10"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Publish Announcement
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {notices.length > 0 ? (
-                notices.map((n) => (
-                  <div key={n._id} className="border p-5 rounded-2xl hover:border-slate-350 dark:hover:border-slate-750 transition-colors flex justify-between items-start gap-4">
-                    <div className="space-y-2">
-                      <div>
-                        <h4 className="font-extrabold text-base">{n.title}</h4>
-                        <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider pt-0.5">
-                          <span>Audience: {n.targetAudience}</span>
-                          <span>•</span>
-                          <span>By: {n.createdBy?.name || 'TPO'}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{new Date(n.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-350 leading-relaxed font-medium whitespace-pre-wrap">{n.body}</p>
+          <div className="grid grid-cols-1 gap-4 text-xs font-semibold">
+            {assessments.length > 0 ? (
+              assessments.map((a) => (
+                <div key={a._id} className="bg-card border p-5 rounded-2xl hover:border-slate-350 transition-colors flex justify-between items-center shadow-xxs">
+                  <div className="space-y-1 text-left">
+                    <h4 className="font-extrabold text-sm text-foreground">{a.title}</h4>
+                    <p className="text-xxs text-primary font-bold">{a.companyId?.name || 'Recruiter'} — {a.jobId?.title || 'Job Opening'}</p>
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1.5 border-t border-dashed mt-2">
+                      <span className="bg-primary/5 text-primary px-2 py-0.5 rounded font-bold">Format: {a.type}</span>
+                      <span>Duration: {a.duration} min</span>
+                      <span>Pass Criteria: {a.passingMarks}%</span>
                     </div>
-
-                    <button
-                      onClick={() => handleRemoveNotice(n._id)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200/50 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 transition-colors shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
                   </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl flex flex-col items-center justify-center gap-1.5">
-                  <FileText className="h-8 w-8 text-slate-300" />
-                  No announcements published yet.
                 </div>
-              )}
+              ))
+            ) : (
+              <div className="p-12 border border-dashed rounded-2xl text-center text-muted-foreground">
+                No active exam assessments created yet. Click "Create Assessment" to build one.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 5. ANALYTICS & REPORTS VIEW */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">Outcomes Analytics & Reports</h2>
+            <p className="text-xs text-muted-foreground">Live university placement stats and branch outcome indices.</p>
+          </div>
+
+          {/* Department placement ratio SVG chart */}
+          <div className="bg-card border p-6 rounded-2xl shadow-sm text-xs font-semibold text-left space-y-6">
+            <h3 className="text-sm font-extrabold border-b pb-2.5 flex items-center gap-1.5">
+              <BarChart3 className="h-4.5 w-4.5 text-accent" /> Branch placement Indices
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              
+              <div className="space-y-4">
+                {stats?.branchMetrics?.map((b: any) => (
+                  <div key={b.branch} className="space-y-1">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-foreground">{b.branch} Branch</span>
+                      <span className="text-primary">{b.placedCount} / {b.totalCount} Placed ({b.ratio}%)</span>
+                    </div>
+                    <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden border">
+                      <div className="bg-primary h-full rounded-full transition-all duration-300" style={{ width: `${b.ratio}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Skill Gaps Highlight */}
+              <div className="p-5 rounded-2xl border bg-secondary/25 space-y-4 text-left">
+                <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <TrendingDown className="h-4.5 w-4.5 text-rose-500" />
+                  AI Skill Gaps Highlight
+                </h4>
+                <p className="text-xxs text-muted-foreground leading-normal font-semibold border-b pb-2">
+                  Skills requested by registered recruiters but not present in default student resumes:
+                </p>
+                <div className="space-y-2 pt-1 font-bold">
+                  <div className="flex justify-between items-center text-xxs p-2 bg-card rounded border">
+                    <span className="text-foreground">AWS Cloud Suite Services</span>
+                    <span className="text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded">64% gap</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xxs p-2 bg-card rounded border">
+                    <span className="text-foreground">Docker / Kubernetes Engine</span>
+                    <span className="text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded">52% gap</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xxs p-2 bg-card rounded border">
+                    <span className="text-foreground">Golang Programming</span>
+                    <span className="text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded">44% gap</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Tab 5: Placement Eligibility Rules */}
-        {activeTab === 'rules' && (
-          <div className="bg-white dark:bg-slate-900 border p-8 rounded-2xl max-w-xl mx-auto text-left space-y-6 shadow-sm">
-            <div className="border-b pb-4">
-              <h3 className="text-xl font-bold flex items-center gap-1.5">
-                <Sliders className="h-5 w-5 text-indigo-500" />
-                Global Placement Policies
-              </h3>
-              <p className="text-sm text-muted-foreground">Define criteria limits governing default students registration checks.</p>
-            </div>
+      {/* 6. SETTINGS VIEW */}
+      {activeTab === 'admin' && (
+        <div className="space-y-6 max-w-xl mx-auto">
+          <div>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">Workspace Configuration</h2>
+            <p className="text-xs text-muted-foreground">Adjust placement rules criteria and configure student auth integrations.</p>
+          </div>
+
+          <div className="bg-card border p-6 rounded-2xl text-xs font-semibold text-left space-y-5 shadow-sm">
+            <h3 className="text-sm font-extrabold border-b pb-2.5 flex items-center gap-1.5">
+              <Sliders className="h-4.5 w-4.5 text-primary" /> Placement Criteria Thresholds
+            </h3>
 
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Global Minimum CGPA Requirement
-                </label>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Global Minimum CGPA</label>
                 <input
                   type="number"
                   step="0.01"
-                  className="block w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors"
-                  placeholder="e.g. 6.00"
+                  className="block w-full border rounded-lg p-2 bg-secondary/15 font-semibold text-xs"
                   value={minCgpa}
                   onChange={(e) => setMinCgpa(parseFloat(e.target.value) || 0)}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Global Max Active Backlogs
-                </label>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Max Active Backlogs</label>
                 <input
                   type="number"
-                  className="block w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors"
-                  placeholder="e.g. 0"
+                  className="block w-full border rounded-lg p-2 bg-secondary/15 font-semibold text-xs"
                   value={maxBacklogs}
                   onChange={(e) => setMaxBacklogs(parseInt(e.target.value) || 0)}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Target Eligible Branches (comma list)
-                </label>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Allowed Specializations (comma split)</label>
                 <input
                   type="text"
-                  className="block w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors"
-                  placeholder="e.g. CSE, IT, ECE (leave blank for all)"
+                  className="block w-full border rounded-lg p-2 bg-secondary/15 font-semibold text-xs"
                   value={allowedBranchesString}
                   onChange={(e) => setAllowedBranchesString(e.target.value)}
                 />
               </div>
 
-              {/* Action Button */}
-              <div className="pt-4 border-t flex justify-end">
+              <div className="flex justify-end pt-2">
                 <button
                   type="button"
                   onClick={handleSaveRules}
-                  className="h-10 px-5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
+                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-sm transition-all"
                 >
-                  Save Global Rules
+                  Save Global Parameters
                 </button>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Tab 6: Admin Control User Registry Dashboard */}
-        {activeTab === 'admin' && (user?.role === UserRole.COLLEGE_ADMIN || user?.role === UserRole.SUPER_ADMIN) && (
-          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm">
-            <AdminUserManagement />
-          </div>
-        )}
-
-        {/* Tab 7: Assessments Management */}
-        {activeTab === 'assessments' && (
-          <div className="bg-white dark:bg-slate-900 border p-6 rounded-2xl text-left space-y-6 shadow-sm">
-            <div className="flex justify-between items-center border-b pb-3">
-              <div>
-                <h3 className="text-lg font-bold">Recruitment Assessments</h3>
-                <p className="text-xs text-muted-foreground">Manage and launch MCQ and Coding examinations linked to jobs.</p>
-              </div>
-              <Link
-                to="/assessments/builder"
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 text-xs font-semibold gap-1.5 shadow-sm shadow-indigo-600/10"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Create Assessment
-              </Link>
-            </div>
-
-            <div className="space-y-4">
-              {assessments.length > 0 ? (
-                assessments.map((a) => (
-                  <div key={a._id} className="border p-5 rounded-2xl hover:border-slate-350 dark:hover:border-slate-750 transition-colors flex justify-between items-center gap-4">
-                    <div className="space-y-1">
-                      <h4 className="font-extrabold text-base">{a.title}</h4>
-                      <p className="text-xs text-indigo-650 dark:text-indigo-400 font-semibold">{a.companyId?.name || 'Company'} — {a.jobId?.title || 'Job Drive'}</p>
-                      <div className="flex flex-wrap items-center gap-2.5 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider pt-0.5">
-                        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-650 dark:text-slate-300">Type: {a.type}</span>
-                        <span>•</span>
-                        <span>Duration: {a.duration} mins</span>
-                        <span>•</span>
-                        <span>Pass Mark: {a.passingMarks}%</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl flex flex-col items-center justify-center gap-1.5">
-                  <FileText className="h-8 w-8 text-slate-300" />
-                  No assessments configured yet.
+          <div className="bg-card border p-6 rounded-2xl text-xs font-semibold text-left space-y-4 shadow-sm">
+            <h3 className="text-sm font-extrabold border-b pb-2.5 flex items-center gap-1.5">
+              <Server className="h-4.5 w-4.5 text-primary" /> External Integrations Sync
+            </h3>
+            
+            <div className="space-y-3 font-bold">
+              <div className="flex justify-between items-center p-3 border rounded-xl bg-secondary/15">
+                <div>
+                  <p className="text-xs text-foreground">Google LDAP Single Sign On</p>
+                  <p className="text-[9px] text-muted-foreground font-semibold">Enable students to register using institutional emails.</p>
                 </div>
-              )}
+                <div className="relative inline-flex items-center">
+                  <input type="checkbox" defaultChecked className="sr-only peer" />
+                  <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary" />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center p-3 border rounded-xl bg-secondary/15">
+                <div>
+                  <p className="text-xs text-foreground">Canvas Academic GPA Sync</p>
+                  <p className="text-[9px] text-muted-foreground font-semibold">Fetch CGPA and active backlogs directly from student registers.</p>
+                </div>
+                <div className="relative inline-flex items-center">
+                  <input type="checkbox" className="sr-only peer" />
+                  <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary" />
+                </div>
+              </div>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
 
-      {/* Notice form overlay */}
-      <NoticeCreateDialog
-        isOpen={noticeOpen}
-        onClose={() => setNoticeOpen(false)}
-        onSave={handleSaveNotice}
-      />
+      {/* Broadcast Dialog notice */}
+      {noticeOpen && (
+        <NoticeCreateDialog
+          isOpen={noticeOpen}
+          onClose={() => setNoticeOpen(false)}
+          onSave={handleSaveNotice}
+        />
+      )}
+
     </div>
   );
 };

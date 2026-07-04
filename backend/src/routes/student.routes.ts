@@ -45,6 +45,7 @@ router.get('/profile', StudentController.getProfile);
 router.put('/profile', StudentController.updateProfile);
 router.post('/resume/upload', upload.single('resume'), StudentController.uploadResume);
 router.post('/resume/ai-score', StudentController.triggerAiReview);
+router.get('/stats', StudentController.getStats);
 
 router.get('/jobs', StudentController.getJobsList);
 router.get('/applications', StudentController.getApplicationsList);

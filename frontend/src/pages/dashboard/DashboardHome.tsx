@@ -1,257 +1,296 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
-import { ThemeToggle } from '../../components/shared/ThemeToggle';
 import api from '../../config/api';
-import { BadgesList } from '../../components/student/BadgesList';
-import { LogOut, GraduationCap, Building2, Briefcase, Network, Cpu, FileText, CheckCircle, Clock } from 'lucide-react';
+import { 
+  Briefcase, 
+  FileText, 
+  CheckCircle, 
+  Clock, 
+  ArrowRight, 
+  Award
+} from 'lucide-react';
 
 export const DashboardHome: React.FC = () => {
-  const { user, logout } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [studentProfile, setStudentProfile] = useState<any>(null);
   const [assessments, setAssessments] = useState<any[]>([]);
+  const [eligibleJobs, setEligibleJobs] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+
+  // Fetch Dashboard Data
+  const fetchDashboardData = async () => {
+    if (!user || user.role !== UserRole.STUDENT) return;
+    try {
+      setLoading(true);
+      
+      const profileRes = await api.get('/student/profile');
+      setStudentProfile(profileRes.data.data.profile);
+
+      const assessRes = await api.get('/assessments');
+      setAssessments(assessRes.data.data.assessments || []);
+
+      const jobsRes = await api.get('/student/jobs');
+      setEligibleJobs(jobsRes.data.data.jobs || []);
+
+      const appsRes = await api.get('/student/applications');
+      setApplications(appsRes.data.data.applications || []);
+
+      const interviewsRes = await api.get('/student/interviews');
+      setInterviews(interviewsRes.data.data.interviews || []);
+
+      const offersRes = await api.get('/student/offers').catch(() => ({ data: { data: { offers: [] } } }));
+      setOffers(offersRes.data.data.offers || []);
+
+    } catch (err) {
+      console.error('Failed to load student dashboard details', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (user?.role === UserRole.STUDENT) {
-      api.get('/student/profile')
-        .then((res) => {
-          setProfile(res.data.data.profile);
-        })
-        .catch(() => {});
-
-      api.get('/assessments')
-        .then((res) => {
-          setAssessments(res.data.data.assessments || []);
-        })
-        .catch(() => {});
-    }
+    fetchDashboardData();
   }, [user]);
 
-  const getRoleIcon = (role?: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return <GraduationCap className="h-5 w-5 text-indigo-500" />;
-      case UserRole.EMPLOYER:
-        return <Building2 className="h-5 w-5 text-violet-500" />;
-      case UserRole.RECRUITER:
-        return <Briefcase className="h-5 w-5 text-blue-500" />;
-      case UserRole.PLACEMENT_OFFICER:
-        return <Network className="h-5 w-5 text-amber-500" />;
-      default:
-        return <Cpu className="h-5 w-5 text-slate-500" />;
+  // Quick Apply handler
+  const handleQuickApply = async (jobId: string) => {
+    try {
+      setApplyingJobId(jobId);
+      await api.post('/student/applications', { jobId });
+      await fetchDashboardData();
+      alert('Application submitted successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to submit application.');
+    } finally {
+      setApplyingJobId(null);
     }
   };
 
-  const formatRole = (role?: string) => {
-    if (!role) return '';
-    return role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  };
+  // Redirect admin roles
+  if (user && user.role !== UserRole.STUDENT) {
+    return <Navigate to="/officer" replace />;
+  }
 
-  // Generate simulated stats per role
-  const getStats = () => {
-    if (!user) return [];
-    
-    switch (user.role) {
-      case UserRole.STUDENT:
-        return [
-          { label: 'Resume Rating', value: '88%', change: '+4% this week', desc: 'AI Review Rating' },
-          { label: 'Saved Jobs', value: '12', change: '3 new added', desc: 'Bookmarked openings' },
-          { label: 'Applications', value: '4', change: '1 in review', desc: 'Active submissions' }
-        ];
-      case UserRole.EMPLOYER:
-        return [
-          { label: 'Job Postings', value: '5', change: '1 active drive', desc: 'Open roles posted' },
-          { label: 'Candidates Match', value: '84', change: '+12 new fits', desc: 'AI recommended fits' },
-          { label: 'Verification', value: 'Pending', change: 'Awaiting admin', desc: 'Company status' }
-        ];
-      case UserRole.PLACEMENT_OFFICER:
-        return [
-          { label: 'Students Registered', value: '312', change: '98% profile score', desc: 'Active batch strength' },
-          { label: 'Partner Brands', value: '45', change: '+3 this month', desc: 'Participating companies' },
-          { label: 'Offers Released', value: '18', change: 'Placement rate: 42%', desc: 'Pending responses' }
-        ];
-      default:
-        return [
-          { label: 'User Count', value: '1,248', change: '+4% this week', desc: 'System total' },
-          { label: 'System Uptime', value: '99.9%', change: 'All services green', desc: 'Hosting status' },
-          { label: 'AI Match Queries', value: '12.4K', change: 'Avg latency: 120ms', desc: 'API requests' }
-        ];
-    }
-  };
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-xs font-semibold text-muted-foreground animate-pulse">Loading Placement Console...</p>
+      </div>
+    );
+  }
 
-  const stats = getStats();
+  // Get upcoming assessment
+  const upcomingAssessment = assessments.find(a => !a.completed);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      {/* Dashboard Navbar */}
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">CF</div>
-            <span className="font-bold text-base hidden sm:inline">CareerFlow AI <span className="text-muted-foreground text-xs font-normal">Console</span></span>
+    <div className="space-y-8 text-left">
+      
+      {/* Greeting Header & Quick Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl border bg-card text-card-foreground shadow-sm">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-foreground">Hello, {user?.name} 👋</h1>
+            <span className="text-[10px] uppercase font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">Vetted Student</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            {user?.role === UserRole.STUDENT && (
-              <>
-                <Link
-                  to="/jobs"
-                  className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-muted text-foreground px-3.5 text-xs font-bold transition-all"
-                >
-                  Search Jobs
-                </Link>
-                <Link
-                  to="/profile"
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 text-xs font-bold transition-all shadow-sm shadow-indigo-650/10"
-                >
-                  My Profile
-                </Link>
-              </>
-            )}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-slate-100/50 dark:bg-slate-900/50 text-xs font-medium">
-              {getRoleIcon(user?.role)}
-              <span>{formatRole(user?.role)}</span>
-            </div>
-            <Link
-              to="/forum"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Forum
-            </Link>
-            <Link
-              to="/mentorship"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors mr-2"
-            >
-              Interview Logs
-            </Link>
-            <ThemeToggle />
-            <button
-              onClick={() => logout()}
-              className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-muted text-muted-foreground hover:text-foreground px-3 text-sm font-medium transition-colors gap-1.5"
-              title="Log Out"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Log Out</span>
-            </button>
+          <div className="flex flex-wrap gap-2 text-xxs font-bold text-muted-foreground">
+            <span className="bg-secondary/55 px-2.5 py-1 rounded">CGPA: {studentProfile?.grade || '9.0'}</span>
+            <span className="bg-secondary/55 px-2.5 py-1 rounded">Course: {studentProfile?.course || 'Computer Science'}</span>
+            {studentProfile?.skills?.slice(0, 3).map((s: string) => (
+              <span key={s} className="bg-primary/5 text-primary px-2.5 py-1 rounded border border-primary/10">{s}</span>
+            ))}
           </div>
         </div>
-      </header>
+        <div className="shrink-0 flex gap-3">
+          <Link
+            to="/profile/resume-builder"
+            className="h-10 px-5 inline-flex items-center justify-center rounded-xl bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-xs shadow-sm shadow-accent/10 gap-1.5 transition-transform hover:scale-[1.01]"
+          >
+            <FileText className="h-4 w-4" />
+            Generate Resume
+          </Link>
+          <Link
+            to="/profile"
+            className="h-10 px-5 inline-flex items-center justify-center rounded-xl border bg-background hover:bg-secondary text-foreground font-bold text-xs transition-colors"
+          >
+            Update Profile
+          </Link>
+        </div>
+      </div>
 
-      {/* Main Content Container */}
-      <main className="flex-grow container mx-auto px-6 py-10 space-y-8">
+      {/* Grid: 3 metrics counters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         
-        {/* Welcome Section */}
-        <section className="p-8 rounded-2xl border bg-white dark:bg-slate-900/40 relative overflow-hidden shadow-sm backdrop-blur-sm">
-          <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-indigo-500/5 to-transparent -z-10" />
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Active Workspace</span>
-            <h1 className="text-3xl font-extrabold tracking-tight">Welcome, {user?.name || 'User'}!</h1>
-            <p className="text-sm text-muted-foreground max-w-xl">
-              You are signed in to CareerFlow AI under the email <span className="text-foreground font-medium">{user?.email}</span>. Use the console to control resources.
-            </p>
+        {/* Eligible count widget */}
+        <div 
+          onClick={() => navigate('/jobs')}
+          className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36 cursor-pointer hover:border-primary transition-all relative overflow-hidden group"
+        >
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Eligible Opportunities</span>
+            <Briefcase className="h-4.5 w-4.5 text-primary" />
           </div>
-        </section>
-
-        {/* Student Achievements Badges Panel */}
-        {user?.role === UserRole.STUDENT && (
-          <section className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm text-left">
-            <BadgesList unlockedBadges={profile?.badges || []} />
-          </section>
-        )}
-
-        {/* Student Active Assessments Panel */}
-        {user?.role === UserRole.STUDENT && assessments.length > 0 && (
-          <section className="bg-white dark:bg-slate-900 border p-6 rounded-2xl shadow-sm text-left space-y-4">
-            <div>
-              <h3 className="font-extrabold text-base flex items-center gap-1.5">
-                <Clock className="h-5 w-5 text-rose-500 animate-pulse" />
-                Pending Recruitment Assessments
-              </h3>
-              <p className="text-xs text-muted-foreground">Complete drive tests requested by corporate hiring managers.</p>
+          <div className="space-y-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-4xl font-black text-primary">{String(eligibleJobs.length).padStart(2, '0')}</span>
+              <span className="text-xxs text-muted-foreground font-bold leading-none">Open Drives</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {assessments.map((a) => (
-                <div key={a._id} className="p-4.5 border rounded-2xl flex flex-col justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/10 hover:border-slate-350 transition-colors">
-                  <div className="space-y-1">
-                    <p className="font-extrabold text-sm">{a.title}</p>
-                    <p className="text-[11px] font-semibold text-indigo-650 dark:text-indigo-400">{a.companyId?.name || 'Company'} — {a.jobId?.title || 'Job Drive'}</p>
-                    <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                      <span>Duration: {a.duration} mins</span>
-                      <span>•</span>
-                      <span>Pass Mark: {a.passingMarks}%</span>
-                    </div>
-                  </div>
-                  <Link
-                    to={`/assessments/${a._id}`}
-                    className="inline-flex h-8 items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-600/10 transition-colors w-28 shrink-0 text-center"
-                  >
-                    Start Test
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+            <p className="text-[10px] text-muted-foreground leading-tight">Positions matching your branch and GPA credentials.</p>
+          </div>
+        </div>
 
-        {/* Stats Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat, idx) => (
-            <div key={idx} className="bg-white dark:bg-slate-900/50 border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</span>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+        {/* Applications Counter */}
+        <div className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Applications</span>
+            <CheckCircle className="h-4.5 w-4.5 text-emerald-500" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-3xl font-black text-slate-800 dark:text-white">{applications.length}</p>
+            <p className="text-xxs text-muted-foreground font-bold">Drives applied</p>
+          </div>
+        </div>
+
+        {/* Interviews Counter */}
+        <div className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interviews</span>
+            <Clock className="h-4.5 w-4.5 text-amber-500 animate-pulse" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-3xl font-black text-slate-800 dark:text-white">{interviews.length}</p>
+            <p className="text-xxs text-muted-foreground font-bold">Scheduled slots</p>
+          </div>
+        </div>
+
+        {/* Offers Counter */}
+        <div className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Offers Released</span>
+            <Award className="h-4.5 w-4.5 text-accent" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-3xl font-black text-slate-800 dark:text-white">{offers.length}</p>
+            <p className="text-xxs text-muted-foreground font-bold">Job offers</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Recommended Jobs Table (Spans 8) */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="bg-card text-card-foreground border rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-secondary/15">
+              <div>
+                <h3 className="font-extrabold text-sm text-foreground">Recommended Openings</h3>
+                <p className="text-[10px] text-muted-foreground">Select openings matching your credentials and skills.</p>
               </div>
-              <div className="space-y-0.5">
-                <span className="text-3xl font-black">{stat.value}</span>
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                  <span className="text-emerald-500 font-semibold">{stat.change}</span>
-                  <span>{stat.desc}</span>
-                </div>
-              </div>
+              <Link to="/jobs" className="text-xxs font-bold text-primary hover:underline flex items-center gap-0.5">
+                View All <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
-          ))}
-        </section>
-
-        {/* Platform Modules (Future Roadmap Preview) */}
-        <section className="space-y-4">
-          <h2 className="text-xl font-bold tracking-tight">Active Platform Integrations</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Phase 1 Integration */}
-            <div className="border bg-white dark:bg-slate-900/30 p-6 rounded-2xl flex gap-4">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5" />
+            {eligibleJobs.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-semibold text-left">
+                  <thead>
+                    <tr className="border-b bg-secondary/10 text-slate-500 text-[10px] uppercase font-black tracking-wider">
+                      <th className="px-6 py-3">Company</th>
+                      <th className="px-6 py-3">Role</th>
+                      <th className="px-6 py-3">Package</th>
+                      <th className="px-6 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {eligibleJobs.slice(0, 4).map((job) => {
+                      const alreadyApplied = applications.some(app => app.jobId?._id === job._id);
+                      return (
+                        <tr key={job._id} className="hover:bg-secondary/25 transition-colors">
+                          <td className="px-6 py-4 text-foreground font-bold">{job.companyId?.name || 'Company'}</td>
+                          <td className="px-6 py-4 text-muted-foreground">{job.title}</td>
+                          <td className="px-6 py-4 text-foreground">{job.salaryRange || 'Unspecified'}</td>
+                          <td className="px-6 py-4 text-right">
+                            {alreadyApplied ? (
+                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded">Applied</span>
+                            ) : (
+                              <button
+                                disabled={applyingJobId === job._id}
+                                onClick={() => handleQuickApply(job._id)}
+                                className="px-3 py-1 bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] font-bold rounded shadow-sm disabled:opacity-50"
+                              >
+                                Apply
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-base flex items-center gap-2">
-                  Authentication & RBAC
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full">Live</span>
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Session control, user registrations, JWT verification with refresh token rotation cookies, and college placement cell RBAC constraints.
-                </p>
+            ) : (
+              <div className="p-8 text-center text-xs text-muted-foreground">
+                No active placement recommendations matching your eligibility. Complete your profile details!
               </div>
-            </div>
-
-            {/* Phase 2 Integration Mocked */}
-            <div className="border border-dashed bg-slate-50/50 dark:bg-slate-900/5 p-6 rounded-2xl flex gap-4 opacity-75">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                <FileText className="h-5 w-5 animate-pulse-slow" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-base flex items-center gap-2">
-                  AI Resume Matcher
-                  <span className="text-[10px] bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded-full">Phase 2</span>
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Automatic PDF extraction, candidate match ratings against job description parameters, and resume structure improvements.
-                </p>
-              </div>
-            </div>
-
+            )}
           </div>
-        </section>
-      </main>
+        </div>
+
+        {/* Upcoming Assessment Widget (Spans 4) */}
+        <div className="lg:col-span-4 space-y-4">
+          <div className="bg-card text-card-foreground border p-5 rounded-2xl shadow-sm text-left relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/5 to-accent/5 blur-xl -z-10 rounded-full" />
+            <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-550 border-b pb-2.5 flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-accent" />
+              Upcoming Assessment
+            </h3>
+            {upcomingAssessment ? (
+              <div className="space-y-4 pt-3.5">
+                <div className="space-y-1">
+                  <span className="text-[9px] uppercase font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                    {upcomingAssessment.type}
+                  </span>
+                  <p className="font-bold text-sm text-foreground">{upcomingAssessment.title}</p>
+                  <p className="text-xxs text-primary font-bold">{upcomingAssessment.companyId?.name || 'Partner Recruiter'}</p>
+                </div>
+                <div className="p-3 bg-secondary/30 rounded-xl space-y-1.5 text-xxs font-bold text-muted-foreground border">
+                  <div className="flex justify-between">
+                    <span>Duration:</span>
+                    <span className="text-foreground">{upcomingAssessment.duration} minutes</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Passing:</span>
+                    <span className="text-foreground">{upcomingAssessment.passingMarks}% score</span>
+                  </div>
+                </div>
+                <Link
+                  to={`/assessments/${upcomingAssessment._id}`}
+                  className="w-full py-2 bg-primary hover:bg-primary/95 text-primary-foreground text-center font-bold text-xs rounded-xl block shadow-sm shadow-primary/10 transition-transform active:scale-95"
+                >
+                  Start Test
+                </Link>
+              </div>
+            ) : (
+              <div className="py-10 text-center text-xs text-muted-foreground space-y-2">
+                <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto" />
+                <p>All pending assessments completed.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 };
+export default DashboardHome;

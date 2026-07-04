@@ -53,6 +53,20 @@ export interface IAiReview {
   reviewedAt: Date;
 }
 
+export interface IContactDetails {
+  phone?: string;
+  altPhone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
+export interface IFamilyDetails {
+  fatherName?: string;
+  motherName?: string;
+}
+
 export interface IStudentProfile extends Document {
   userId: mongoose.Types.ObjectId;
   headline?: string;
@@ -74,6 +88,21 @@ export interface IStudentProfile extends Document {
   resumeVersions: IResumeVersion[];
   aiReview?: IAiReview;
   badges: string[];
+  enrollmentNumber?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  course?: string;
+  specialization?: string;
+  gender?: string;
+  dob?: Date;
+  bloodGroup?: string;
+  maritalStatus?: string;
+  medicalHistory?: string;
+  contactDetails?: IContactDetails;
+  familyDetails?: IFamilyDetails;
+  policyAgreed?: boolean;
+  photo?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -157,7 +186,32 @@ const StudentProfileSchema = new Schema<IStudentProfile>(
     resumeUrl: { type: String },
     resumeVersions: [ResumeVersionSchema],
     aiReview: AiReviewSchema,
-    badges: [{ type: String, trim: true }]
+    badges: [{ type: String, trim: true }],
+    enrollmentNumber: { type: String, trim: true },
+    firstName: { type: String, trim: true },
+    middleName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
+    course: { type: String, trim: true },
+    specialization: { type: String, trim: true },
+    gender: { type: String, trim: true },
+    dob: { type: Date },
+    bloodGroup: { type: String, trim: true },
+    maritalStatus: { type: String, trim: true },
+    medicalHistory: { type: String, trim: true },
+    contactDetails: {
+      phone: { type: String, trim: true },
+      altPhone: { type: String, trim: true },
+      address: { type: String, trim: true },
+      city: { type: String, trim: true },
+      state: { type: String, trim: true },
+      zip: { type: String, trim: true }
+    },
+    familyDetails: {
+      fatherName: { type: String, trim: true },
+      motherName: { type: String, trim: true }
+    },
+    policyAgreed: { type: Boolean, default: false },
+    photo: { type: String }
   },
   {
     timestamps: true
