@@ -8,7 +8,8 @@ import {
   CheckCircle, 
   Clock, 
   ArrowRight, 
-  Award
+  Award,
+  AlertCircle
 } from 'lucide-react';
 
 export const DashboardHome: React.FC = () => {
@@ -23,6 +24,100 @@ export const DashboardHome: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+
+  // Setup Modal States
+  const [setupFirstName, setSetupFirstName] = useState('');
+  const [setupLastName, setSetupLastName] = useState('');
+  const [setupEnrollment, setSetupEnrollment] = useState('');
+  const [setupCourse, setSetupCourse] = useState('');
+  const [setupCgpa, setSetupCgpa] = useState('');
+  const [setupSubmitting, setSetupSubmitting] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+
+  // Helper for capitalization
+  const capitalize = (str?: string) => {
+    if (!str) return '';
+    return str
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Populate Setup Modal inputs when student profile is loaded
+  useEffect(() => {
+    if (studentProfile) {
+      const nameParts = (user?.name || '').trim().split(/\s+/);
+      const defaultFirst = nameParts[0] || '';
+      const defaultLast = nameParts.slice(1).join(' ') || '';
+
+      setSetupFirstName(studentProfile.firstName || defaultFirst);
+      setSetupLastName(studentProfile.lastName || defaultLast);
+      setSetupEnrollment(studentProfile.enrollmentNumber || '');
+      setSetupCourse(studentProfile.course || '');
+      setSetupCgpa(studentProfile.education?.[0]?.grade || '');
+    }
+  }, [studentProfile, user]);
+
+  const isProfileIncomplete = studentProfile && (
+    !studentProfile.course || 
+    !studentProfile.enrollmentNumber ||
+    !studentProfile.firstName ||
+    !studentProfile.lastName
+  );
+
+  const handleSetupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setupFirstName.trim()) return setSetupError('First Name is required');
+    if (!setupLastName.trim()) return setSetupError('Last Name is required');
+    if (!setupEnrollment.trim()) return setSetupError('Enrollment Number is required');
+    if (!setupCourse.trim()) return setSetupError('Course / Department is required');
+    
+    const cgpaNum = parseFloat(setupCgpa);
+    if (isNaN(cgpaNum) || cgpaNum < 0 || cgpaNum > 10) {
+      return setSetupError('Please enter a valid CGPA between 0 and 10');
+    }
+
+    try {
+      setSetupSubmitting(true);
+      setSetupError(null);
+
+      const updatedEducation = [...(studentProfile.education || [])];
+      const defaultEdu = {
+        institution: "My Institution",
+        degree: "Bachelor of Technology",
+        fieldOfStudy: setupCourse.trim(),
+        startDate: new Date(),
+        current: true,
+        grade: cgpaNum.toFixed(2)
+      };
+
+      if (updatedEducation.length === 0) {
+        updatedEducation.push(defaultEdu);
+      } else {
+        updatedEducation[0] = {
+          ...updatedEducation[0],
+          fieldOfStudy: setupCourse.trim(),
+          grade: cgpaNum.toFixed(2)
+        };
+      }
+
+      const payload = {
+        firstName: setupFirstName.trim(),
+        lastName: setupLastName.trim(),
+        enrollmentNumber: setupEnrollment.trim(),
+        course: setupCourse.trim(),
+        education: updatedEducation
+      };
+
+      const res = await api.put('/student/profile', payload);
+      setStudentProfile(res.data.data.profile);
+      await fetchDashboardData();
+    } catch (err: any) {
+      setSetupError(err.response?.data?.message || 'Failed to save setup details. Please try again.');
+    } finally {
+      setSetupSubmitting(false);
+    }
+  };
 
   // Fetch Dashboard Data
   const fetchDashboardData = async () => {
@@ -97,11 +192,11 @@ export const DashboardHome: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl border bg-card text-card-foreground shadow-sm">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-foreground">Hello, {user?.name} 👋</h1>
+            <h1 className="text-2xl font-black text-foreground">Hello, {capitalize(user?.name)} 👋</h1>
             <span className="text-[10px] uppercase font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">Vetted Student</span>
           </div>
           <div className="flex flex-wrap gap-2 text-xxs font-bold text-muted-foreground">
-            <span className="bg-secondary/55 px-2.5 py-1 rounded">CGPA: {studentProfile?.grade || '9.0'}</span>
+            <span className="bg-secondary/55 px-2.5 py-1 rounded">CGPA: {studentProfile?.education?.[0]?.grade || '9.0'}</span>
             <span className="bg-secondary/55 px-2.5 py-1 rounded">Course: {studentProfile?.course || 'Computer Science'}</span>
             {studentProfile?.skills?.slice(0, 3).map((s: string) => (
               <span key={s} className="bg-primary/5 text-primary px-2.5 py-1 rounded border border-primary/10">{s}</span>
@@ -289,6 +384,105 @@ export const DashboardHome: React.FC = () => {
         </div>
 
       </div>
+
+      {isProfileIncomplete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6 text-left animate-in fade-in zoom-in-95 duration-200">
+            <div className="space-y-2">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-black text-lg shadow-md shadow-primary/10">CF</div>
+              <h2 className="text-xl font-black text-foreground tracking-tight">Complete Profile Setup</h2>
+              <p className="text-xxs text-muted-foreground leading-normal">
+                Welcome to CareerFlow AI! Please enter your basic details to configure your placement console.
+              </p>
+            </div>
+
+            {setupError && (
+              <div className="p-3.5 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-800/50 flex items-start gap-2.5 text-rose-800 dark:text-rose-450 text-xs leading-snug">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{setupError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSetupSubmit} className="space-y-4 text-xs font-semibold">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">First Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none"
+                    value={setupFirstName}
+                    onChange={e => setSetupFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Last Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none"
+                    value={setupLastName}
+                    onChange={e => setSetupLastName(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Enrollment Number</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 1032210001"
+                  className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none"
+                  value={setupEnrollment}
+                  onChange={e => setSetupEnrollment(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Degree Course / Department</label>
+                <select
+                  required
+                  className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold focus:ring-1 focus:ring-primary focus:outline-none"
+                  value={setupCourse}
+                  onChange={e => setSetupCourse(e.target.value)}
+                >
+                  <option value="">Select Course</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                  <option value="Mechanical Engineering">Mechanical Engineering</option>
+                  <option value="Civil Engineering">Civil Engineering</option>
+                  <option value="Business Administration">Business Administration</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Current CGPA</label>
+                <input
+                  type="number"
+                  required
+                  step="0.01"
+                  min="0"
+                  max="10"
+                  placeholder="e.g. 9.50"
+                  className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none"
+                  value={setupCgpa}
+                  onChange={e => setSetupCgpa(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={setupSubmitting}
+                className="w-full h-10 inline-flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-wider text-white bg-primary hover:bg-primary/95 transition-all shadow-md shadow-primary/10 mt-2 disabled:opacity-50"
+              >
+                {setupSubmitting ? 'Saving Details...' : 'Save & Continue'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
