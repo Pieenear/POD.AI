@@ -30,7 +30,7 @@ export const DashboardHome: React.FC = () => {
   const [setupLastName, setSetupLastName] = useState('');
   const [setupEnrollment, setSetupEnrollment] = useState('');
   const [setupCourse, setSetupCourse] = useState('');
-  const [setupCgpa, setSetupCgpa] = useState('');
+  const [setupSchool, setSetupSchool] = useState('');
   const [setupSubmitting, setSetupSubmitting] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -54,12 +54,13 @@ export const DashboardHome: React.FC = () => {
       setSetupLastName(studentProfile.lastName || defaultLast);
       setSetupEnrollment(studentProfile.enrollmentNumber || '');
       setSetupCourse(studentProfile.course || '');
-      setSetupCgpa(studentProfile.education?.[0]?.grade || '');
+      setSetupSchool(studentProfile.specialization || '');
     }
   }, [studentProfile, user]);
 
   const isProfileIncomplete = studentProfile && (
     !studentProfile.course || 
+    !studentProfile.specialization ||
     !studentProfile.enrollmentNumber ||
     !studentProfile.firstName ||
     !studentProfile.lastName
@@ -70,11 +71,12 @@ export const DashboardHome: React.FC = () => {
     if (!setupFirstName.trim()) return setSetupError('First Name is required');
     if (!setupLastName.trim()) return setSetupError('Last Name is required');
     if (!setupEnrollment.trim()) return setSetupError('Enrollment Number is required');
-    if (!setupCourse.trim()) return setSetupError('Course / Department is required');
+    if (!setupSchool.trim()) return setSetupError('School is required');
+    if (!setupCourse.trim()) return setSetupError('Department is required');
     
-    const cgpaNum = parseFloat(setupCgpa);
-    if (isNaN(cgpaNum) || cgpaNum < 0 || cgpaNum > 10) {
-      return setSetupError('Please enter a valid CGPA between 0 and 10');
+    const enrollUpper = setupEnrollment.trim().toUpperCase();
+    if (!/^[A-Z0-9]{5,25}$/.test(enrollUpper)) {
+      return setSetupError('Please enter a valid enrollment number (e.g. ADT23SOCB1571)');
     }
 
     try {
@@ -84,11 +86,10 @@ export const DashboardHome: React.FC = () => {
       const updatedEducation = [...(studentProfile.education || [])];
       const defaultEdu = {
         institution: "My Institution",
-        degree: "Bachelor of Technology",
+        degree: "Degree (UG/PG)",
         fieldOfStudy: setupCourse.trim(),
         startDate: new Date(),
-        current: true,
-        grade: cgpaNum.toFixed(2)
+        current: true
       };
 
       if (updatedEducation.length === 0) {
@@ -96,16 +97,16 @@ export const DashboardHome: React.FC = () => {
       } else {
         updatedEducation[0] = {
           ...updatedEducation[0],
-          fieldOfStudy: setupCourse.trim(),
-          grade: cgpaNum.toFixed(2)
+          fieldOfStudy: setupCourse.trim()
         };
       }
 
       const payload = {
         firstName: setupFirstName.trim(),
         lastName: setupLastName.trim(),
-        enrollmentNumber: setupEnrollment.trim(),
+        enrollmentNumber: enrollUpper,
         course: setupCourse.trim(),
+        specialization: setupSchool.trim(),
         education: updatedEducation
       };
 
@@ -197,7 +198,7 @@ export const DashboardHome: React.FC = () => {
             <span className="text-[10px] uppercase font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">Vetted Student</span>
           </div>
           <div className="flex flex-wrap gap-2 text-xxs font-bold text-muted-foreground">
-            <span className="bg-secondary/55 px-2.5 py-1 rounded">CGPA: {studentProfile?.education?.[0]?.grade || '9.0'}</span>
+            <span className="bg-secondary/55 px-2.5 py-1 rounded">CGPA: {studentProfile?.education?.[0]?.grade || 'N/A'}</span>
             <span className="bg-secondary/55 px-2.5 py-1 rounded">Course: {studentProfile?.course || 'Computer Science'}</span>
             {studentProfile?.skills?.slice(0, 3).map((s: string) => (
               <span key={s} className="bg-primary/5 text-primary px-2.5 py-1 rounded border border-primary/10">{s}</span>
@@ -442,22 +443,34 @@ export const DashboardHome: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 1032210001"
-                  className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none"
+                  placeholder="e.g. ADT23SOCB1571"
+                  className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none text-foreground"
                   value={setupEnrollment}
                   onChange={e => setSetupEnrollment(e.target.value)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-black text-slate-500">Degree Course / Department</label>
+                <label className="text-[10px] uppercase font-black text-slate-500">School</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. School of Technology"
+                  className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none text-foreground"
+                  value={setupSchool}
+                  onChange={e => setSetupSchool(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Department</label>
                 <select
                   required
-                  className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold focus:ring-1 focus:ring-primary focus:outline-none"
+                  className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold focus:ring-1 focus:ring-primary focus:outline-none text-foreground"
                   value={setupCourse}
                   onChange={e => setSetupCourse(e.target.value)}
                 >
-                  <option value="">Select Course</option>
+                  <option value="">Select Department</option>
                   <option value="Information Technology">Information Technology</option>
                   <option value="Computer Science">Computer Science</option>
                   <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
@@ -465,21 +478,6 @@ export const DashboardHome: React.FC = () => {
                   <option value="Civil Engineering">Civil Engineering</option>
                   <option value="Business Administration">Business Administration</option>
                 </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-black text-slate-500">Current CGPA</label>
-                <input
-                  type="number"
-                  required
-                  step="0.01"
-                  min="0"
-                  max="10"
-                  placeholder="e.g. 9.50"
-                  className="w-full border rounded-lg p-2 bg-secondary/10 focus:ring-1 focus:ring-primary focus:outline-none"
-                  value={setupCgpa}
-                  onChange={e => setSetupCgpa(e.target.value)}
-                />
               </div>
 
               <button
