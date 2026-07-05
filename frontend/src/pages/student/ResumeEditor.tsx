@@ -113,6 +113,18 @@ export const ResumeEditor: React.FC = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const capitalize = (str?: string) => {
+    if (!str) return '';
+    return str
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const candidateName = profile
+    ? capitalize(`${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile?.userId?.name)
+    : 'Candidate Name';
+
   const handleToggle = (key: keyof typeof generateFields) => {
     setGenerateFields(prev => ({
       ...prev,
@@ -522,7 +534,7 @@ export const ResumeEditor: React.FC = () => {
             {selectedTheme === 'minimal-clean' && (
               <div className="space-y-4">
                 <div className="border-b pb-4 text-center">
-                  <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">{profile?.userId?.name || 'Candidate Name'}</h1>
+                  <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">{candidateName}</h1>
                   {generateFields.briefSummary && <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">{headline}</p>}
                   {generateFields.contactDetails && (
                     <p className="text-[10px] text-muted-foreground mt-2">
@@ -542,7 +554,7 @@ export const ResumeEditor: React.FC = () => {
             {selectedTheme === 'sleek-dark' && (
               <div className="space-y-4">
                 <div className="bg-slate-900 text-white p-5 rounded-xl text-center space-y-1">
-                  <h1 className="text-2xl font-black">{profile?.userId?.name || 'Candidate Name'}</h1>
+                  <h1 className="text-2xl font-black">{candidateName}</h1>
                   {generateFields.briefSummary && <p className="text-xs text-slate-300 uppercase tracking-widest font-extrabold">{headline}</p>}
                   {generateFields.contactDetails && (
                     <p className="text-[9px] text-slate-400">
@@ -562,7 +574,7 @@ export const ResumeEditor: React.FC = () => {
             {selectedTheme === 'emerald-executive' && (
               <div className="space-y-4">
                 <div className="border-l-4 border-emerald-600 pl-4 py-1">
-                  <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">{profile?.userId?.name || 'Candidate Name'}</h1>
+                  <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">{candidateName}</h1>
                   {generateFields.briefSummary && <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-widest">{headline}</p>}
                   {generateFields.contactDetails && (
                     <p className="text-[10px] text-muted-foreground">

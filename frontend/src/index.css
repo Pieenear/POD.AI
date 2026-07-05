@@ -73,6 +73,10 @@
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-accent/20 selection:text-foreground;
   }
+  /* Smooth theme toggle transition */
+  body, header, aside, main, div, p, span, h1, h2, h3, h4, h5, h6, button, input, select, textarea, a {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
 }
 
 /* Glassmorphism helpers */

@@ -14,13 +14,15 @@ import {
   Upload,
   AlertCircle,
   CheckCircle,
-  Award
+  Award,
+  X
 } from 'lucide-react';
 
 export const StudentProfile: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Consolidated Tabs
   const [activeTab, setActiveTab] = useState<'basic' | 'education_experience' | 'projects_publications' | 'skills_development' | 'documents_policy'>('basic');
@@ -415,7 +417,11 @@ export const StudentProfile: React.FC = () => {
       <div className="bg-card border p-6 rounded-2xl shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 text-left">
-            <div className="h-14 w-14 rounded-full border bg-secondary/55 flex items-center justify-center overflow-hidden">
+            <div 
+              onClick={() => photo && setIsLightboxOpen(true)}
+              className={`h-14 w-14 rounded-full border bg-secondary/55 flex items-center justify-center overflow-hidden ${photo ? 'cursor-zoom-in hover:opacity-85 transition-opacity' : ''}`}
+              title={photo ? "Click to view full image" : ""}
+            >
               {photo ? <img src={photo} alt="Avatar" className="h-full w-full object-cover" /> : <User className="h-7 w-7 text-slate-400" />}
             </div>
             <div>
@@ -475,7 +481,11 @@ export const StudentProfile: React.FC = () => {
               
               {/* Photo Box */}
               <div className="md:col-span-1 flex flex-col items-center gap-2">
-                <div className="h-24 w-24 rounded-2xl border bg-secondary flex items-center justify-center overflow-hidden">
+                <div 
+                  onClick={() => photo && setIsLightboxOpen(true)}
+                  className={`h-24 w-24 rounded-2xl border bg-secondary flex items-center justify-center overflow-hidden ${photo ? 'cursor-zoom-in hover:opacity-85 transition-opacity' : ''}`}
+                  title={photo ? "Click to view full image" : ""}
+                >
                   {photo ? <img src={photo} alt="Student" className="h-full w-full object-cover" /> : <User className="h-10 w-10 text-slate-400" />}
                 </div>
                 <label className="px-3 py-1.5 rounded-lg border hover:bg-secondary text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors">
@@ -533,7 +543,17 @@ export const StudentProfile: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-black text-slate-500">Marital Status</label>
-                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" placeholder="e.g. Single" value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} />
+                  <select
+                    className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold"
+                    value={maritalStatus}
+                    onChange={e => setMaritalStatus(e.target.value)}
+                  >
+                    <option value="">Select Status</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                  </select>
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-[10px] uppercase font-black text-slate-500">Medical History / Allergies</label>
@@ -953,6 +973,23 @@ export const StudentProfile: React.FC = () => {
           onSave={saveProject}
           initialData={editingProj !== null ? profile.projects[editingProj] : undefined}
         />
+      )}
+
+      {isLightboxOpen && photo && (
+        <div 
+          onClick={() => setIsLightboxOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 cursor-zoom-out animate-fade-in"
+        >
+          <div className="relative max-w-3xl max-h-[85vh] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <img src={photo} alt="Student Full Size" className="max-w-full max-h-[80vh] object-contain" />
+            <button 
+              onClick={() => setIsLightboxOpen(false)}
+              className="absolute top-4 right-4 bg-slate-950/60 hover:bg-slate-950/80 text-white rounded-full p-2 transition-colors border border-slate-700/50 cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

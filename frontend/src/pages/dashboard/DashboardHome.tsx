@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 export const DashboardHome: React.FC = () => {
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
   const navigate = useNavigate();
 
   const [studentProfile, setStudentProfile] = useState<any>(null);
@@ -111,6 +111,7 @@ export const DashboardHome: React.FC = () => {
 
       const res = await api.put('/student/profile', payload);
       setStudentProfile(res.data.data.profile);
+      await checkAuth();
       await fetchDashboardData();
     } catch (err: any) {
       setSetupError(err.response?.data?.message || 'Failed to save setup details. Please try again.');
@@ -242,7 +243,10 @@ export const DashboardHome: React.FC = () => {
         </div>
 
         {/* Applications Counter */}
-        <div className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
+        <div 
+          onClick={() => navigate('/jobs')}
+          className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36 cursor-pointer hover:border-primary transition-all relative overflow-hidden group"
+        >
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Applications</span>
             <CheckCircle className="h-4.5 w-4.5 text-emerald-500" />
@@ -254,7 +258,10 @@ export const DashboardHome: React.FC = () => {
         </div>
 
         {/* Interviews Counter */}
-        <div className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
+        <div 
+          onClick={() => navigate('/interviews')}
+          className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36 cursor-pointer hover:border-primary transition-all relative overflow-hidden group"
+        >
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interviews</span>
             <Clock className="h-4.5 w-4.5 text-amber-500 animate-pulse" />
@@ -266,7 +273,10 @@ export const DashboardHome: React.FC = () => {
         </div>
 
         {/* Offers Counter */}
-        <div className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36">
+        <div 
+          onClick={() => navigate('/offers')}
+          className="bg-card text-card-foreground border p-6 rounded-2xl shadow-sm flex flex-col justify-between h-36 cursor-pointer hover:border-primary transition-all relative overflow-hidden group"
+        >
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Offers Released</span>
             <Award className="h-4.5 w-4.5 text-accent" />

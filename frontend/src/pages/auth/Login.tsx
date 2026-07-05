@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
-import { Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import api from '../../config/api';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -20,6 +21,31 @@ export const Login: React.FC = () => {
   const location = useLocation();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Password visibility
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Forgot password states
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return setForgotError('Email is required');
+    try {
+      setForgotSubmitting(true);
+      setForgotError(null);
+      await api.post('/auth/forgot-password', { email: forgotEmail });
+      setForgotSuccess(true);
+    } catch (err: any) {
+      setForgotError(err.response?.data?.message || 'Failed to request password reset.');
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
 
   // Check for institution query parameter
   const searchParams = new URLSearchParams(location.search);
@@ -136,9 +162,18 @@ export const Login: React.FC = () => {
                 <label htmlFor="password" className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                   Password
                 </label>
-                <a href="#" className="text-[10px] font-bold text-primary hover:underline">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail('');
+                    setForgotSuccess(false);
+                    setForgotError(null);
+                    setForgotPasswordOpen(true);
+                  }}
+                  className="text-[10px] font-bold text-primary hover:underline"
+                >
                   Forgot Password?
-                </a>
+                </button>
               </div>
               <div className="relative rounded-lg shadow-xxs">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
@@ -146,14 +181,25 @@ export const Login: React.FC = () => {
                 </div>
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   disabled={isSubmitting}
-                  className={`block w-full pl-9 pr-3 py-2 border rounded-lg bg-secondary/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all ${
+                  className={`block w-full pl-9 pr-10 py-2 border rounded-lg bg-secondary/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all ${
                     errors.password ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-500/10' : 'border-border'
                   }`}
                   placeholder="••••••••"
                   {...register('password')}
                 />
+                <button
+                  type="button"
+                  onMouseDown={() => setShowPassword(true)}
+                  onMouseUp={() => setShowPassword(false)}
+                  onMouseLeave={() => setShowPassword(false)}
+                  onTouchStart={() => setShowPassword(true)}
+                  onTouchEnd={() => setShowPassword(false)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-foreground cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
               {errors.password && (
                 <p className="text-[10px] text-rose-500 font-semibold">{errors.password.message}</p>
@@ -229,6 +275,76 @@ export const Login: React.FC = () => {
           <span>AWS Cloud Secure</span>
         </div>
       </div>
+
+      {forgotPasswordOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-xl overflow-hidden p-6 space-y-4 text-left animate-fade-in">
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-foreground">Reset Password</h3>
+              <p className="text-xxs text-muted-foreground">
+                Enter your registered email address and we'll send you instructions to reset your password.
+              </p>
+            </div>
+
+            {forgotSuccess ? (
+              <div className="space-y-4">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-650 dark:text-emerald-400 p-3 rounded-lg text-xs font-semibold flex items-center gap-2">
+                  <ShieldCheck className="h-4.5 w-4.5 flex-shrink-0 text-emerald-500" />
+                  <span>If an account exists, a reset link has been dispatched to your email inbox.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForgotPasswordOpen(false)}
+                  className="w-full h-9 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary/95 transition-all"
+                >
+                  Return to Sign In
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                {forgotError && (
+                  <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-2.5 rounded-lg text-xxs font-semibold flex items-center gap-2">
+                    <AlertCircle className="h-4.5 w-4.5 flex-shrink-0" />
+                    <span>{forgotError}</span>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@university.edu"
+                    className="block w-full px-3 py-2 border rounded-lg bg-secondary/20 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-foreground"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-3 justify-end pt-2">
+                  <button
+                    type="button"
+                    disabled={forgotSubmitting}
+                    onClick={() => setForgotPasswordOpen(false)}
+                    className="px-4 h-9 rounded-lg text-xs font-bold border hover:bg-secondary transition-all text-foreground"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotSubmitting}
+                    className="px-4 h-9 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary/95 transition-all disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                  >
+                    {forgotSubmitting ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      'Send Reset Link'
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

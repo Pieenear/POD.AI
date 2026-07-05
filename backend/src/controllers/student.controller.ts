@@ -110,6 +110,18 @@ export class StudentController {
       if (firstName !== undefined) profile.firstName = firstName;
       if (middleName !== undefined) profile.middleName = middleName;
       if (lastName !== undefined) profile.lastName = lastName;
+
+      // Update name in User collection if firstName or lastName changes
+      if (firstName !== undefined || lastName !== undefined) {
+        const userToUpdate = await User.findById(req.user.userId);
+        if (userToUpdate) {
+          const finalFirst = firstName !== undefined ? firstName : (profile.firstName || '');
+          const finalLast = lastName !== undefined ? lastName : (profile.lastName || '');
+          userToUpdate.name = `${finalFirst} ${finalLast}`.trim();
+          await userToUpdate.save();
+        }
+      }
+
       if (course !== undefined) profile.course = course;
       if (specialization !== undefined) profile.specialization = specialization;
       if (gender !== undefined) profile.gender = gender;

@@ -119,14 +119,17 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Degree
               </label>
-              <input
-                type="text"
+              <select
                 className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
                   errors.degree ? 'border-rose-450 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
                 }`}
-                placeholder="e.g. B.Tech / M.S."
                 {...register('degree')}
-              />
+              >
+                <option value="">Select Level</option>
+                <option value="Secondary (10th)">Secondary (10th)</option>
+                <option value="Higher Secondary (12th)">Higher Secondary (12th)</option>
+                <option value="Degree (UG/PG)">Degree (UG/PG)</option>
+              </select>
               {errors.degree && (
                 <p className="text-xs text-rose-500">{errors.degree.message}</p>
               )}

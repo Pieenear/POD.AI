@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
@@ -25,6 +25,23 @@ export const AdminLayout: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(true);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -69,21 +86,28 @@ export const AdminLayout: React.FC = () => {
             <ThemeToggle />
 
             {/* Notifications Bell */}
-            <div className="relative">
+            <div className="relative" ref={notificationsRef}>
               <button 
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
                 className="p-2 rounded-lg border hover:bg-secondary text-muted-foreground hover:text-foreground transition-all relative"
                 title="Notifications"
               >
                 <Bell className="h-4.5 w-4.5" />
-                <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                {hasUnread && (
+                  <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                )}
               </button>
 
               {notificationsOpen && (
                 <div className="absolute right-0 mt-2 w-72 rounded-xl border bg-card text-card-foreground shadow-lg py-2 z-50 text-xs">
                   <div className="px-4 py-2 border-b font-bold flex justify-between items-center">
                     <span>Admin Alerts</span>
-                    <button className="text-[10px] text-primary hover:underline">Clear</button>
+                    <button 
+                      onClick={() => setHasUnread(false)}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      Clear
+                    </button>
                   </div>
                   <div className="max-h-60 overflow-y-auto divide-y">
                     <div className="p-3 hover:bg-secondary/40 space-y-1">
@@ -102,7 +126,7 @@ export const AdminLayout: React.FC = () => {
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button 
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-secondary text-sm font-semibold transition-all"
