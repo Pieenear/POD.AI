@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Landing } from '../pages/landing/Landing';
 import { ForInstitutions } from '../pages/landing/ForInstitutions';
 import { Login } from '../pages/auth/Login';
@@ -30,7 +30,7 @@ import { ChangePassword } from '../pages/student/ChangePassword';
 
 export const AppRouter: React.FC = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* Public Marketing Routes */}
         <Route path="/" element={<Landing />} />
@@ -78,7 +78,7 @@ export const AppRouter: React.FC = () => {
         {/* Fallback Redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 export default AppRouter;
