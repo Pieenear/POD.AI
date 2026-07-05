@@ -119,7 +119,7 @@ export const ForumBoard: React.FC = () => {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
+      <header className="relative z-10 border-b bg-background/85 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
             <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">CF</div>

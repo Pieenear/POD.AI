@@ -81,7 +81,7 @@ export const StudentLayout: React.FC = () => {
     <div className="min-h-screen bg-background flex flex-col antialiased">
       
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
