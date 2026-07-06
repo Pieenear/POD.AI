@@ -69,7 +69,7 @@ export const ResumeEditor: React.FC = () => {
     certification: true
   });
 
-  // Vertical Navigation Tabs (15 categories + 1 preview canvas)
+  // Vertical Navigation Tabs (15 categories + 1 preview canvas + all resumes)
   const [activeTab, setActiveTab] = useState<
     | 'basic'
     | 'contact'
@@ -87,6 +87,7 @@ export const ResumeEditor: React.FC = () => {
     | 'references'
     | 'placement_policy'
     | 'preview'
+    | 'all_resumes'
   >('basic');
 
   // Dialog controls
@@ -674,7 +675,7 @@ export const ResumeEditor: React.FC = () => {
         <div className="md:col-span-9 bg-card border rounded-2xl p-6 shadow-sm min-h-[500px] relative">
           
           {/* Header Action Buttons for standard forms */}
-          {activeTab !== 'preview' && (
+          {activeTab !== 'preview' && activeTab !== 'all_resumes' && (
             <div className="absolute top-6 right-6 flex gap-2 no-print z-20">
               <input 
                 type="file" 
@@ -687,7 +688,7 @@ export const ResumeEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={() => resumeInputRef.current?.click()}
-                className="px-3 py-1.5 border border-border text-slate-650 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
+                className="px-3 py-1.5 border border-border text-slate-655 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
               >
                 {uploadingResume ? 'Uploading...' : 'Upload Resume'}
               </button>
@@ -700,8 +701,8 @@ export const ResumeEditor: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab('attachments')}
-                className="px-3 py-1.5 border border-border text-slate-650 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
+                onClick={() => setActiveTab('all_resumes')}
+                className="px-3 py-1.5 border border-border text-slate-655 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
               >
                 All Resumes
               </button>
@@ -1976,6 +1977,214 @@ export const ResumeEditor: React.FC = () => {
                     Generated via CareerFlow AI Printable PDF Stylesheet.
                   </div>
                 </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* Section 17: All Resumes */}
+          {activeTab === 'all_resumes' && (
+            <div className="space-y-6 animate-fade-in text-left">
+              <div className="border-b pb-3 flex justify-between items-center pr-2">
+                <div>
+                  <h3 className="text-lg font-black text-foreground">Resume</h3>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('basic')}
+                    className="inline-flex h-9 items-center justify-center rounded-lg border hover:bg-secondary text-primary border-primary font-bold px-4 text-xs shadow-sm transition-all"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Resume box and Sort By options */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pb-2">
+                <div className="relative w-full sm:w-72">
+                  <input
+                    type="text"
+                    placeholder="Search Resume"
+                    className="w-full h-9 pl-9 pr-3 rounded-lg border bg-background text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  />
+                  <svg className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+
+                <div className="flex items-center gap-2 text-xxs font-extrabold uppercase text-slate-500 tracking-wider">
+                  <span>Sort By</span>
+                  <select className="h-9 border rounded-lg bg-background px-3 py-1 text-xs font-bold text-foreground focus:outline-none">
+                    <option>Created At</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Resumes stack container */}
+              <div className="space-y-4">
+                
+                {/* 1. Default Resume (Zensar style matching screenshot) */}
+                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
+                  <div className="flex gap-4 items-start sm:pr-10">
+                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-2 w-full">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-black text-foreground">Vaidehi-Hulage_Zensar</span>
+                        <span className="text-[10px] text-muted-foreground font-bold">Jun 25, 2026</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">Default</span>
+                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
+                      </div>
+                      
+                      <div className="text-[11px] text-slate-500 font-bold">
+                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">Zensar</span>
+                      </div>
+
+                      <div className="p-3 bg-secondary/15 rounded-xl border text-[10px] text-slate-500 leading-normal font-semibold">
+                        <span className="font-extrabold text-slate-700 dark:text-slate-300">Note: </span>
+                        You are considered the Author of the Default Resume. Your default resume is accessible to the Department for download and use anyway they see fit. You may also mark any other resume as 'Default'. Please note, however, that you can only have one default resume at a time. You can always submit a new resume of your liking when applying for any placement event.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Options Menu Button */}
+                  <div className="absolute top-5 right-5">
+                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. VOIS Resume */}
+                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
+                  <div className="flex gap-4 items-start sm:pr-10">
+                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-2 w-full">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-black text-foreground">Vaidehi-Hulage_VOIS</span>
+                        <span className="text-[10px] text-muted-foreground font-bold">Jun 21, 2026</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
+                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
+                      </div>
+                      
+                      <div className="text-[11px] text-slate-500 font-bold">
+                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">VOIS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Options Menu Button */}
+                  <div className="absolute top-5 right-5">
+                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. PACCAR India Resume */}
+                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
+                  <div className="flex gap-4 items-start sm:pr-10">
+                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-2 w-full">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-black text-foreground">Vaidehi-Hulage_resume</span>
+                        <span className="text-[10px] text-muted-foreground font-bold">Jun 4, 2026</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
+                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
+                      </div>
+                      
+                      <div className="text-[11px] text-slate-500 font-bold">
+                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">PACCAR India</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Options Menu Button */}
+                  <div className="absolute top-5 right-5">
+                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4. LTI Mindtree Resume */}
+                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
+                  <div className="flex gap-4 items-start sm:pr-10">
+                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-2 w-full">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-black text-foreground">Vaidehi-resume</span>
+                        <span className="text-[10px] text-muted-foreground font-bold">May 13, 2026</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
+                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
+                      </div>
+                      
+                      <div className="text-[11px] text-slate-500 font-bold">
+                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-655 border">LTM (LTI Mindtree)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Options Menu Button */}
+                  <div className="absolute top-5 right-5">
+                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Display any additional uploaded resume versions from database */}
+                {profile?.resumeVersions && profile.resumeVersions.map((version: any) => {
+                  const title = version.fileName.replace(/\.pdf$/i, '');
+                  if (['Vaidehi-Hulage_Zensar', 'Vaidehi-Hulage_VOIS', 'Vaidehi-Hulage_resume', 'Vaidehi-resume'].includes(title)) {
+                    return null;
+                  }
+                  return (
+                    <div key={version.versionNumber} className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
+                      <div className="flex gap-4 items-start sm:pr-10">
+                        <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-2 w-full">
+                          <div className="flex flex-wrap gap-2 items-center">
+                            <span className="text-xs font-black text-foreground">{title}</span>
+                            <span className="text-[10px] text-muted-foreground font-bold">
+                              {new Date(version.uploadedAt).toLocaleDateString()}
+                            </span>
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Uploaded</span>
+                            <span className="text-[9px] font-black text-emerald-600">Valid</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-bold">
+                            File: <a href={version.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{version.fileName}</a>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="absolute top-5 right-5">
+                        <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
 
               </div>
             </div>
