@@ -283,6 +283,112 @@ export const StudentProfile: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const getCategorizedAttachments = () => {
+    const academics = {
+      currentCourse: [] as { name: string; url: string }[],
+      otherDegree: [] as { name: string; url: string }[],
+      twelfth: [] as { name: string; url: string }[],
+      diploma: [] as { name: string; url: string }[],
+      tenth: [] as { name: string; url: string }[]
+    };
+
+    const certificates = {
+      experience: [] as { name: string; url: string }[],
+      internship: [] as { name: string; url: string }[],
+      assessment: [] as { name: string; url: string }[],
+      responsibility: [] as { name: string; url: string }[],
+      other: [] as { name: string; url: string }[]
+    };
+
+    const projectsList = [] as { name: string; url: string }[];
+    const identityProofsList = [] as { name: string; url: string }[];
+
+    // 1. Academic Records from Education
+    if (profile?.education) {
+      profile.education.forEach((edu: any) => {
+        const deg = (edu.degree || '').toLowerCase();
+        
+        if (deg.includes('10th') || deg.includes('secondary') || deg.includes('school') || deg.includes('matric')) {
+          if (edu.marksheetUrl) {
+            academics.tenth.push({ name: `[Marksheet] Marksheet X.png`, url: edu.marksheetUrl });
+          }
+        } else if (deg.includes('12th') || deg.includes('higher secondary') || deg.includes('hsc') || deg.includes('intermediate')) {
+          if (edu.marksheetUrl) {
+            academics.twelfth.push({ name: `[Marksheet] Marksheet XII.png`, url: edu.marksheetUrl });
+          }
+        } else if (deg.includes('diploma')) {
+          if (edu.marksheetUrl) {
+            academics.diploma.push({ name: `[Marksheet] Diploma Marksheet.pdf`, url: edu.marksheetUrl });
+          }
+        } else if (deg.includes('ug') || deg.includes('pg') || deg.includes('b.tech') || deg.includes('btech') || deg.includes('degree') || deg.includes('graduate') || deg.includes('master') || deg.includes('bachelor') || deg.includes('b.sc') || deg.includes('bsc') || deg.includes('bca') || deg.includes('mca')) {
+          // Add semesters marksheets
+          if (edu.semesters) {
+            edu.semesters.forEach((sem: any) => {
+              if (sem.marksheetUrl) {
+                academics.currentCourse.push({
+                  name: `[Marksheet] result sem ${sem.semester || sem.year}.pdf`,
+                  url: sem.marksheetUrl
+                });
+              }
+            });
+          }
+          // If the main degree has a marksheet url, add it as other degree or current course marksheet
+          if (edu.marksheetUrl) {
+            academics.otherDegree.push({ name: `[Marksheet] Degree Certificate - ${edu.degree}.pdf`, url: edu.marksheetUrl });
+          }
+        } else {
+          if (edu.marksheetUrl) {
+            academics.otherDegree.push({ name: `[Marksheet] Certificate - ${edu.degree}.pdf`, url: edu.marksheetUrl });
+          }
+        }
+      });
+    }
+
+    // 2. Experience & Internships
+    if (profile?.experience) {
+      profile.experience.forEach((exp: any) => {
+        const company = exp.company || 'Company';
+        if (exp.marksheetUrl) {
+          if (exp.experienceType === 'internship') {
+            certificates.internship.push({
+              name: `${profile.firstName || 'Student'} ${company}-Offer Letter.pdf`,
+              url: exp.marksheetUrl
+            });
+          } else {
+            certificates.experience.push({
+              name: `${profile.firstName || 'Student'} ${company}-Experience Letter.pdf`,
+              url: exp.marksheetUrl
+            });
+          }
+        }
+      });
+    }
+
+    // 3. Assessment / Certifications
+    if (profile?.certifications) {
+      profile.certifications.forEach((cert: any) => {
+        if (cert.credentialUrl) {
+          certificates.assessment.push({
+            name: `${cert.issuingOrganization || 'Assessment'}-${cert.name}.pdf`,
+            url: cert.credentialUrl
+          });
+        }
+      });
+    }
+
+    // 4. Other Attachments / Resume versions
+    if (profile?.resumes) {
+      profile.resumes.forEach((res: any, idx: number) => {
+        certificates.other.push({
+          name: `[Resume] Version ${idx + 1}.pdf`,
+          url: `http://localhost:5000${res.url}`
+        });
+      });
+    }
+
+    return { academics, certificates, projectsList, identityProofsList };
+  };
+
   // Skill tag handlers
   const handleAddSkill = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -809,50 +915,325 @@ export const StudentProfile: React.FC = () => {
           )}
 
           {/* Section 5: Attachments */}
-          {activeTab === 'attachments' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Attachments</h3>
-                <p className="text-xxs text-muted-foreground">Manage profile resume attachments and verified copies.</p>
-              </div>
-
-              {/* Resume Upload */}
-              <div className="p-6 rounded-2xl border border-dashed bg-secondary/10 flex flex-col items-center justify-center text-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/5 text-primary flex items-center justify-center">
-                  <FileText className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-bold">Upload Your Vetted PDF Resume</p>
-                  <p className="text-[10px] text-muted-foreground">PDF file formats only, maximum file size 3MB.</p>
-                </div>
-                <label className="px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs uppercase rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm">
-                  {uploadingResume ? 'Uploading...' : 'Upload File'}
-                  <input type="file" accept=".pdf" className="hidden" disabled={uploadingResume} onChange={handleUploadResumeFile} />
-                </label>
-              </div>
-
-              {/* Profile resumes list */}
-              {profile?.resumes?.length > 0 && (
-                <div className="space-y-3 pt-3 border-t">
-                  <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Uploaded Resume Versions</h4>
-                  <div className="divide-y rounded-xl border overflow-hidden">
-                    {profile.resumes.map((res: any, idx: number) => (
-                      <div key={idx} className="p-3 flex items-center justify-between bg-card text-xs font-semibold">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4.5 w-4.5 text-primary" />
-                          <div>
-                            <p className="font-bold text-foreground">Version {idx + 1}</p>
-                            <p className="text-[9px] text-muted-foreground">Uploaded: {new Date(res.uploadedAt).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <a href={`http://localhost:5000${res.url}`} target="_blank" rel="noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                      </div>
-                    ))}
+          {activeTab === 'attachments' && (() => {
+            const { academics, certificates, projectsList, identityProofsList } = getCategorizedAttachments();
+            return (
+              <div className="space-y-6 animate-fade-in text-left">
+                <div className="border-b pb-3 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-base font-extrabold">Attachments</h3>
+                    <p className="text-xxs text-muted-foreground">Manage profile attachments, academic records, and certificates.</p>
                   </div>
+                  
+                  {/* Uploader Trigger Button */}
+                  <label className="px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs uppercase rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm">
+                    {uploadingResume ? 'Uploading...' : 'Upload Resume'}
+                    <input type="file" accept=".pdf" className="hidden" disabled={uploadingResume} onChange={handleUploadResumeFile} />
+                  </label>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Category 1: Academic Records */}
+                <div className="space-y-4 pt-4 border-t first:border-t-0 first:pt-0">
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Academic Records</h4>
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTab('education')}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 pl-2">
+                    {/* Current Course Marksheets */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Current Course Marksheets</p>
+                      {academics.currentCourse.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {academics.currentCourse.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Marksheets available.</p>
+                      )}
+                    </div>
+
+                    {/* Other Degree */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Other Degree</p>
+                      {academics.otherDegree.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {academics.otherDegree.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* 12th */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">12th</p>
+                      {academics.twelfth.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {academics.twelfth.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* Diploma */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Diploma</p>
+                      {academics.diploma.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {academics.diploma.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* 10th */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">10th</p>
+                      {academics.tenth.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {academics.tenth.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 italic mt-2">*All academic relevant attachments can be updated from the Education tab on the left.</p>
+                </div>
+
+                {/* Category 2: Certificates */}
+                <div className="space-y-4 pt-6 border-t">
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Certificates</h4>
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTab('experience')}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 pl-2">
+                    {/* Professional Experience */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Professional Experience</p>
+                      {certificates.experience.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {certificates.experience.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* Internship Certificates */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Internship Certificates</p>
+                      {certificates.internship.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {certificates.internship.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* Assessment Certificates */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Assessment Certificates</p>
+                      {certificates.assessment.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {certificates.assessment.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* Position of Responsibility Certificates */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Position of Responsibility Certificates</p>
+                      {certificates.responsibility.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {certificates.responsibility.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+
+                    {/* Other Attachments */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Other Attachments / Resumes</p>
+                      {certificates.other.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {certificates.other.map((file, fIdx) => (
+                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4.5 w-4.5 text-primary" />
+                                <span className="truncate text-foreground font-bold">{file.name}</span>
+                              </div>
+                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 italic mt-2">*Attachments of the certificates can be updated from their respective tabs on the left.</p>
+                </div>
+
+                {/* Category 3: Projects */}
+                <div className="space-y-4 pt-6 border-t">
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Projects</h4>
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTab('projects')}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  {projectsList.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
+                      {projectsList.map((file, fIdx) => (
+                        <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4.5 w-4.5 text-primary" />
+                            <span className="truncate text-foreground font-bold">{file.name}</span>
+                          </div>
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="pl-2">
+                      <p className="text-[10px] text-muted-foreground italic">No Attachments available.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category 4: Identity Proofs */}
+                <div className="space-y-4 pt-6 border-t">
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Identity Proofs</h4>
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveTab('basic')}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  {identityProofsList.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
+                      {identityProofsList.map((file, fIdx) => (
+                        <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4.5 w-4.5 text-primary" />
+                            <span className="truncate text-foreground font-bold">{file.name}</span>
+                          </div>
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="pl-2">
+                      <p className="text-[10px] text-muted-foreground italic">No Attachments available.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Section 6: Professional Experience */}
           {activeTab === 'experience' && (
