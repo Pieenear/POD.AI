@@ -735,6 +735,47 @@ export const ResumeEditor: React.FC = () => {
         </div>
       )}
 
+      {/* Top Page Header with action buttons */}
+      {activeTab !== 'preview' && activeTab !== 'all_resumes' && (
+        <div className="flex justify-between items-center no-print pb-2 pr-1">
+          <div>
+            <h2 className="text-lg font-black text-foreground">Resume Builder</h2>
+            <p className="text-xxs text-muted-foreground mt-0.5">Build and customize your professional profile and resume templates.</p>
+          </div>
+          <div className="flex gap-2">
+            <input 
+              type="file" 
+              ref={resumeInputRef} 
+              accept=".pdf" 
+              className="hidden" 
+              disabled={uploadingResume}
+              onChange={handleUploadResumeFile} 
+            />
+            <button
+              type="button"
+              onClick={() => resumeInputRef.current?.click()}
+              className="px-3.5 py-2 bg-card hover:bg-secondary/40 border text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            >
+              {uploadingResume ? 'Uploading...' : 'Upload Resume'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('preview')}
+              className="px-3.5 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+            >
+              Generate Resume
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('all_resumes')}
+              className="px-3.5 py-2 bg-card hover:bg-secondary/40 border text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            >
+              All Resumes
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Grid wrapper splits layout to vertical navigation sidebar + active category editor */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         
@@ -770,41 +811,6 @@ export const ResumeEditor: React.FC = () => {
 
         {/* Right Side: Active form view content card */}
         <div className="md:col-span-9 bg-card border rounded-2xl p-6 shadow-sm min-h-[500px] relative">
-          
-          {/* Header Action Buttons for standard forms */}
-          {activeTab !== 'preview' && activeTab !== 'all_resumes' && (
-            <div className="absolute top-6 right-6 flex gap-2 no-print z-20">
-              <input 
-                type="file" 
-                ref={resumeInputRef} 
-                accept=".pdf" 
-                className="hidden" 
-                disabled={uploadingResume}
-                onChange={handleUploadResumeFile} 
-              />
-              <button
-                type="button"
-                onClick={() => resumeInputRef.current?.click()}
-                className="px-3 py-1.5 border border-border text-slate-655 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
-              >
-                {uploadingResume ? 'Uploading...' : 'Upload Resume'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('preview')}
-                className="px-3 py-1.5 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs font-bold transition-all shadow-md active:scale-95"
-              >
-                Generate Resume
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('all_resumes')}
-                className="px-3 py-1.5 border border-border text-slate-655 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
-              >
-                All Resumes
-              </button>
-            </div>
-          )}
 
           {/* Section 1: Basic Details */}
           {activeTab === 'basic' && (
