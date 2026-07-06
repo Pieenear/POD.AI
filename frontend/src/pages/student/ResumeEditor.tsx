@@ -100,6 +100,103 @@ export const ResumeEditor: React.FC = () => {
   const [editingProj, setEditingProj] = useState<any>(null);
   const [expandedSemEdu, setExpandedSemEdu] = useState<number[]>([]);
 
+  // All Resumes Dropdown & List States
+  const [resumesList, setResumesList] = useState<any[]>([]);
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (profile) {
+      const mockResumes = [
+        {
+          id: 'zensar',
+          title: 'Vaidehi-Hulage_Zensar',
+          date: 'Jun 25, 2026',
+          isDefault: true,
+          status: 'Valid',
+          target: 'Zensar',
+          hasNote: true
+        },
+        {
+          id: 'vois',
+          title: 'Vaidehi-Hulage_VOIS',
+          date: 'Jun 21, 2026',
+          isDefault: false,
+          status: 'Valid',
+          target: 'VOIS'
+        },
+        {
+          id: 'resume',
+          title: 'Vaidehi-Hulage_resume',
+          date: 'Jun 4, 2026',
+          isDefault: false,
+          status: 'Valid',
+          target: 'PACCAR India'
+        },
+        {
+          id: 'lti',
+          title: 'Vaidehi-resume',
+          date: 'May 13, 2026',
+          isDefault: false,
+          status: 'Valid',
+          target: 'LTM (LTI Mindtree)'
+        }
+      ];
+
+      const uploaded = (profile.resumeVersions || []).map((version: any) => {
+        const title = version.fileName.replace(/\.pdf$/i, '');
+        return {
+          id: `upload-${version.versionNumber}`,
+          title: title,
+          date: new Date(version.uploadedAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          }),
+          isDefault: false,
+          status: 'Valid',
+          target: 'General Upload',
+          url: version.url
+        };
+      });
+
+      const filteredUploaded = uploaded.filter((up: any) => 
+        !mockResumes.some(mock => mock.title === up.title)
+      );
+
+      setResumesList([...mockResumes, ...filteredUploaded]);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveDropdown(null);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  const handleMakeDefault = (index: number) => {
+    setResumesList(prev => prev.map((item, idx) => ({
+      ...item,
+      isDefault: idx === index
+    })));
+    showNotice('Default resume updated successfully.');
+  };
+
+  const handleDeleteResume = (index: number) => {
+    setResumesList(prev => prev.filter((_, idx) => idx !== index));
+    showNotice('Resume deleted successfully.');
+  };
+
+  const handleDownloadResume = (item: any) => {
+    if (item.url) {
+      window.open(`${api.defaults.baseURL || ''}${item.url}`, '_blank');
+    } else {
+      window.print();
+    }
+    showNotice('Downloading resume...');
+  };
+
   // Basic Info Form States
   const [enrollmentNumber, setEnrollmentNumber] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -2023,169 +2120,91 @@ export const ResumeEditor: React.FC = () => {
 
               {/* Resumes stack container */}
               <div className="space-y-4">
-                
-                {/* 1. Default Resume (Zensar style matching screenshot) */}
-                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
-                  <div className="flex gap-4 items-start sm:pr-10">
-                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2 w-full">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-black text-foreground">Vaidehi-Hulage_Zensar</span>
-                        <span className="text-[10px] text-muted-foreground font-bold">Jun 25, 2026</span>
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">Default</span>
-                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
+                {resumesList.map((item, idx) => (
+                  <div key={item.id} className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
+                    <div className="flex gap-4 items-start sm:pr-10">
+                      <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
+                        <FileText className="h-5 w-5" />
                       </div>
-                      
-                      <div className="text-[11px] text-slate-500 font-bold">
-                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">Zensar</span>
-                      </div>
-
-                      <div className="p-3 bg-secondary/15 rounded-xl border text-[10px] text-slate-500 leading-normal font-semibold">
-                        <span className="font-extrabold text-slate-700 dark:text-slate-300">Note: </span>
-                        You are considered the Author of the Default Resume. Your default resume is accessible to the Department for download and use anyway they see fit. You may also mark any other resume as 'Default'. Please note, however, that you can only have one default resume at a time. You can always submit a new resume of your liking when applying for any placement event.
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Options Menu Button */}
-                  <div className="absolute top-5 right-5">
-                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. VOIS Resume */}
-                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
-                  <div className="flex gap-4 items-start sm:pr-10">
-                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2 w-full">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-black text-foreground">Vaidehi-Hulage_VOIS</span>
-                        <span className="text-[10px] text-muted-foreground font-bold">Jun 21, 2026</span>
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
-                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
-                      </div>
-                      
-                      <div className="text-[11px] text-slate-500 font-bold">
-                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">VOIS</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Options Menu Button */}
-                  <div className="absolute top-5 right-5">
-                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. PACCAR India Resume */}
-                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
-                  <div className="flex gap-4 items-start sm:pr-10">
-                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2 w-full">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-black text-foreground">Vaidehi-Hulage_resume</span>
-                        <span className="text-[10px] text-muted-foreground font-bold">Jun 4, 2026</span>
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
-                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
-                      </div>
-                      
-                      <div className="text-[11px] text-slate-500 font-bold">
-                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">PACCAR India</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Options Menu Button */}
-                  <div className="absolute top-5 right-5">
-                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 4. LTI Mindtree Resume */}
-                <div className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
-                  <div className="flex gap-4 items-start sm:pr-10">
-                    <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2 w-full">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-black text-foreground">Vaidehi-resume</span>
-                        <span className="text-[10px] text-muted-foreground font-bold">May 13, 2026</span>
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
-                        <span className="text-[9px] font-black text-emerald-600">Valid</span>
-                      </div>
-                      
-                      <div className="text-[11px] text-slate-500 font-bold">
-                        Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-655 border">LTM (LTI Mindtree)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Options Menu Button */}
-                  <div className="absolute top-5 right-5">
-                    <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Display any additional uploaded resume versions from database */}
-                {profile?.resumeVersions && profile.resumeVersions.map((version: any) => {
-                  const title = version.fileName.replace(/\.pdf$/i, '');
-                  if (['Vaidehi-Hulage_Zensar', 'Vaidehi-Hulage_VOIS', 'Vaidehi-Hulage_resume', 'Vaidehi-resume'].includes(title)) {
-                    return null;
-                  }
-                  return (
-                    <div key={version.versionNumber} className="p-5 rounded-2xl border bg-card hover:shadow-md transition-shadow relative">
-                      <div className="flex gap-4 items-start sm:pr-10">
-                        <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-950 flex items-center justify-center text-violet-650 flex-shrink-0">
-                          <FileText className="h-5 w-5" />
+                      <div className="space-y-2 w-full">
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <span className="text-xs font-black text-foreground">{item.title}</span>
+                          <span className="text-[10px] text-muted-foreground font-bold">{item.date}</span>
+                          {item.isDefault ? (
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">Default</span>
+                          ) : (
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Created</span>
+                          )}
+                          <span className="text-[9px] font-black text-emerald-600">{item.status}</span>
                         </div>
-                        <div className="space-y-2 w-full">
-                          <div className="flex flex-wrap gap-2 items-center">
-                            <span className="text-xs font-black text-foreground">{title}</span>
-                            <span className="text-[10px] text-muted-foreground font-bold">
-                              {new Date(version.uploadedAt).toLocaleDateString()}
-                            </span>
-                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">Uploaded</span>
-                            <span className="text-[9px] font-black text-emerald-600">Valid</span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-bold">
-                            File: <a href={version.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{version.fileName}</a>
-                          </div>
+                        
+                        <div className="text-[11px] text-slate-500 font-bold">
+                          Used for application in: <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 border">{item.target}</span>
                         </div>
+
+                        {item.isDefault && item.hasNote && (
+                          <div className="p-3 bg-secondary/15 rounded-xl border text-[10px] text-slate-500 leading-normal font-semibold mt-2">
+                            <span className="font-extrabold text-slate-700 dark:text-slate-300">Note: </span>
+                            You are considered the Author of the Default Resume. Your default resume is accessible to the Department for download and use anyway they see fit. You may also mark any other resume as 'Default'. Please note, however, that you can only have one default resume at a time. You can always submit a new resume of your liking when applying for any placement event.
+                          </div>
+                        )}
                       </div>
-                      <div className="absolute top-5 right-5">
-                        <button type="button" className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                    </div>
+
+                    {/* Options Menu Button */}
+                    <div className="absolute top-5 right-5">
+                      <div className="relative">
+                        <button 
+                          type="button" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdown(activeDropdown === idx ? null : idx);
+                          }}
+                          className="p-1 rounded-full text-slate-400 hover:text-slate-655 focus:outline-none"
+                        >
                           <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                           </svg>
                         </button>
+                        
+                        {activeDropdown === idx && (
+                          <div className="absolute right-0 mt-1 w-36 bg-card border rounded-xl shadow-lg py-1 z-30 font-bold text-xs text-slate-750 dark:text-slate-250">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleDownloadResume(item);
+                                setActiveDropdown(null);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-secondary/50 transition-colors flex items-center gap-1.5"
+                            >
+                              <Download className="h-3.5 w-3.5 text-primary" /> Download
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleMakeDefault(idx);
+                                setActiveDropdown(null);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-secondary/50 transition-colors flex items-center gap-1.5"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> Make Default
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleDeleteResume(idx);
+                                setActiveDropdown(null);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-secondary/50 text-rose-600 transition-colors flex items-center gap-1.5"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-
+                  </div>
+                ))}
               </div>
             </div>
           )}
