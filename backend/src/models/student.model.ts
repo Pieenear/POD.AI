@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ISemesterDetail {
+  year: number;
+  semester: string;
+  cgpa?: number;
+  closedBacklogs?: number;
+  liveBacklogs?: number;
+  marksheetUrl?: string;
+}
+
 export interface IEducation {
   institution: string;
   degree: string;
@@ -8,6 +17,11 @@ export interface IEducation {
   endDate?: Date;
   current: boolean;
   grade?: string;
+  marksheetUrl?: string;
+  semesters?: ISemesterDetail[];
+  aggregateCgpa?: number;
+  totalClosedBacklogs?: number;
+  totalLiveBacklogs?: number;
 }
 
 export interface IExperience {
@@ -18,6 +32,8 @@ export interface IExperience {
   endDate?: Date;
   current: boolean;
   description?: string;
+  cgpa?: string;
+  marksheetUrl?: string;
 }
 
 export interface IProject {
@@ -103,9 +119,22 @@ export interface IStudentProfile extends Document {
   familyDetails?: IFamilyDetails;
   policyAgreed?: boolean;
   photo?: string;
+  positionsOfResponsibility?: string[];
+  references?: string;
+  otherDetails?: string;
+  seminars?: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const SemesterDetailSchema = new Schema<ISemesterDetail>({
+  year: { type: Number },
+  semester: { type: String },
+  cgpa: { type: Number },
+  closedBacklogs: { type: Number },
+  liveBacklogs: { type: Number },
+  marksheetUrl: { type: String }
+});
 
 const EducationSchema = new Schema<IEducation>({
   institution: { type: String, required: true },
@@ -114,7 +143,12 @@ const EducationSchema = new Schema<IEducation>({
   startDate: { type: Date, required: true },
   endDate: { type: Date },
   current: { type: Boolean, default: false },
-  grade: { type: String }
+  grade: { type: String },
+  marksheetUrl: { type: String },
+  semesters: [SemesterDetailSchema],
+  aggregateCgpa: { type: Number },
+  totalClosedBacklogs: { type: Number },
+  totalLiveBacklogs: { type: Number }
 });
 
 const ExperienceSchema = new Schema<IExperience>({
@@ -124,7 +158,9 @@ const ExperienceSchema = new Schema<IExperience>({
   startDate: { type: Date, required: true },
   endDate: { type: Date },
   current: { type: Boolean, default: false },
-  description: { type: String }
+  description: { type: String },
+  cgpa: { type: String },
+  marksheetUrl: { type: String }
 });
 
 const ProjectSchema = new Schema<IProject>({
@@ -211,7 +247,11 @@ const StudentProfileSchema = new Schema<IStudentProfile>(
       motherName: { type: String, trim: true }
     },
     policyAgreed: { type: Boolean, default: false },
-    photo: { type: String }
+    photo: { type: String },
+    positionsOfResponsibility: [{ type: String, trim: true }],
+    references: { type: String, trim: true },
+    otherDetails: { type: String, trim: true },
+    seminars: { type: String, trim: true }
   },
   {
     timestamps: true

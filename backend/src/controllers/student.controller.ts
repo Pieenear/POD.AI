@@ -81,7 +81,11 @@ export class StudentController {
         contactDetails,
         familyDetails,
         policyAgreed,
-        photo
+        photo,
+        positionsOfResponsibility,
+        references,
+        otherDetails,
+        seminars
       } = req.body;
 
       let profile = await StudentProfile.findOne({ userId: req.user.userId });
@@ -143,6 +147,10 @@ export class StudentController {
       }
       if (policyAgreed !== undefined) profile.policyAgreed = policyAgreed;
       if (photo !== undefined) profile.photo = photo;
+      if (positionsOfResponsibility !== undefined) profile.positionsOfResponsibility = positionsOfResponsibility;
+      if (references !== undefined) profile.references = references;
+      if (otherDetails !== undefined) profile.otherDetails = otherDetails;
+      if (seminars !== undefined) profile.seminars = seminars;
 
       // Re-run AI analysis synchronously so the dashboard receives the updated score immediately
       const aiReviewResult = await AiService.analyzeProfile(profile);
@@ -279,6 +287,30 @@ export class StudentController {
         data: {
           profile
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Handles general document uploads (e.g. marksheets, certificates).
+   */
+  public static async uploadDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      if (!req.file) {
+        throw new BadRequestError('No document file provided');
+      }
+
+      const fileUrl = `/uploads/documents/${req.file.filename}`;
+      res.status(200).json({
+        success: true,
+        message: 'Document uploaded successfully.',
+        url: fileUrl
       });
     } catch (error) {
       next(error);

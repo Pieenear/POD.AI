@@ -38,6 +38,7 @@ export const StudentProfile: React.FC = () => {
   const [editingEdu, setEditingEdu] = useState<any>(null);
   const [editingExp, setEditingExp] = useState<any>(null);
   const [editingProj, setEditingProj] = useState<any>(null);
+  const [expandedSemEdu, setExpandedSemEdu] = useState<number[]>([]);
 
   // Basic Info Form States
   const [enrollmentNumber, setEnrollmentNumber] = useState('');
@@ -127,9 +128,12 @@ export const StudentProfile: React.FC = () => {
       setPortfolio(data.portfolio || '');
       setPublicationsText(data.bio || ''); // Reuse bio field for custom publications content
 
-      setCertificationsText(data.certifications?.join(', ') || '');
+      const certNames = data.certifications?.map((c: any) => typeof c === 'object' && c !== null ? c.name : c) || [];
+      setCertificationsText(certNames.join(', ') || '');
       setResponsibilityText(data.positionsOfResponsibility?.join(', ') || '');
       setReferencesText(data.references || '');
+      setSeminarsText(data.seminars || '');
+      setOtherDetailsText(data.otherDetails || '');
       setPolicyAgreed(data.policyAgreed || false);
 
     } catch (err) {
@@ -202,11 +206,12 @@ export const StudentProfile: React.FC = () => {
 
   const handleSaveSkillsDevelopment = async () => {
     try {
-      const certs = certificationsText ? certificationsText.split(',').map(c => c.trim()).filter(Boolean) : [];
+      const certObjects = certificationsText ? certificationsText.split(',').map(c => ({ name: c.trim(), issuingOrganization: 'Self', issueDate: new Date() })).filter(c => c.name) : [];
       const roles = responsibilityText ? responsibilityText.split(',').map(r => r.trim()).filter(Boolean) : [];
       const payload = {
-        certifications: certs,
-        positionsOfResponsibility: roles
+        certifications: certObjects,
+        positionsOfResponsibility: roles,
+        seminars: seminarsText
       };
       const res = await api.put('/student/profile', payload);
       setProfile(res.data.data.profile);
@@ -220,6 +225,7 @@ export const StudentProfile: React.FC = () => {
     try {
       const payload = {
         references: referencesText,
+        otherDetails: otherDetailsText,
         policyAgreed
       };
       const res = await api.put('/student/profile', payload);
@@ -651,19 +657,93 @@ export const StudentProfile: React.FC = () => {
 
               {profile?.education?.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
-                  {profile.education.map((edu: any, idx: number) => (
-                    <div key={idx} className="p-4 rounded-xl border bg-secondary/15 flex justify-between items-center text-xs font-semibold">
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold text-foreground">{edu.degree} in {edu.fieldOfStudy}</p>
-                        <p className="text-muted-foreground">{edu.institution}</p>
-                        <p className="text-xxs text-slate-400 font-medium">Grade: {edu.grade || 'N/A'}</p>
+                  {profile.education.map((edu: any, idx: number) => {
+                    const isExpanded = expandedSemEdu.includes(idx);
+                    return (
+                      <div key={idx} className="p-4 rounded-xl border bg-secondary/15 space-y-3 text-xs font-semibold">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1 text-left">
+                            <p className="text-sm font-bold text-foreground">{edu.degree} in {edu.fieldOfStudy}</p>
+                            <p className="text-muted-foreground">{edu.institution}</p>
+                            <p className="text-xxs text-slate-400 font-medium">CGPA / Grade: {edu.grade || 'N/A'}</p>
+                            
+                            {edu.marksheetUrl && (
+                              <a
+                                href={edu.marksheetUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 mt-1.5 text-xxs text-indigo-650 hover:underline bg-indigo-50/50 dark:bg-indigo-950/20 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-900"
+                              >
+                                <FileText className="h-3 w-3" /> View/Download Marksheet
+                              </a>
+                            )}
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button onClick={() => { setEditingEdu(idx); setEduOpen(true); }} className="p-1.5 rounded bg-card border text-primary"><Edit className="h-4 w-4" /></button>
+                            <button onClick={() => removeEducation(idx)} className="p-1.5 rounded bg-card border text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                        </div>
+
+                        {edu.semesters && edu.semesters.length > 0 && (
+                          <div className="border-t pt-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedSemEdu(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
+                              className="text-xxs font-black text-indigo-650 hover:underline flex items-center gap-1 uppercase tracking-wider bg-secondary/50 px-2.5 py-1 rounded"
+                            >
+                              {isExpanded ? 'Hide Semester Details (-)' : 'Show Semester Details (+)'}
+                            </button>
+                            
+                            {isExpanded && (
+                              <div className="mt-3 overflow-x-auto border rounded-lg bg-card/60 p-2">
+                                <table className="w-full text-[11px] text-left border-collapse">
+                                  <thead>
+                                    <tr className="border-b text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                      <th className="py-1 px-2">Sem</th>
+                                      <th className="py-1 px-2">CGPA</th>
+                                      <th className="py-1 px-2">Closed Backlogs</th>
+                                      <th className="py-1 px-2">Live Backlogs</th>
+                                      <th className="py-1 px-2">Marksheet</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {edu.semesters.map((sem: any, sIdx: number) => (
+                                      <tr key={sIdx} className="border-b last:border-0 hover:bg-slate-50/25">
+                                        <td className="py-1.5 px-2 font-bold">{sem.semester}</td>
+                                        <td className="py-1.5 px-2">{sem.cgpa !== undefined ? sem.cgpa : 'N/A'}</td>
+                                        <td className="py-1.5 px-2">{sem.closedBacklogs !== undefined ? sem.closedBacklogs : '0'}</td>
+                                        <td className="py-1.5 px-2">{sem.liveBacklogs !== undefined ? sem.liveBacklogs : '0'}</td>
+                                        <td className="py-1.5 px-2">
+                                          {sem.marksheetUrl ? (
+                                            <a
+                                              href={sem.marksheetUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-indigo-600 hover:underline font-bold"
+                                            >
+                                              View File
+                                            </a>
+                                          ) : (
+                                            <span className="text-slate-400">None</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    <tr className="bg-secondary/20 font-bold">
+                                      <td className="py-1.5 px-2">Agg / Total</td>
+                                      <td className="py-1.5 px-2">{edu.aggregateCgpa || edu.grade || 'N/A'}</td>
+                                      <td className="py-1.5 px-2">{edu.totalClosedBacklogs !== undefined ? edu.totalClosedBacklogs : '0'}</td>
+                                      <td className="py-1.5 px-2" colSpan={2}>{edu.totalLiveBacklogs !== undefined ? edu.totalLiveBacklogs : '0'}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => { setEditingEdu(idx); setEduOpen(true); }} className="p-1.5 rounded bg-card border text-primary"><Edit className="h-4 w-4" /></button>
-                        <button onClick={() => removeEducation(idx)} className="p-1.5 rounded bg-card border text-rose-500"><Trash2 className="h-4 w-4" /></button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl bg-secondary/10">
@@ -691,12 +771,25 @@ export const StudentProfile: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4">
                   {profile.experience.map((exp: any, idx: number) => (
                     <div key={idx} className="p-4 rounded-xl border bg-secondary/15 flex justify-between items-center text-xs font-semibold">
-                      <div className="space-y-1">
+                      <div className="space-y-1 text-left">
                         <p className="text-sm font-bold text-foreground">{exp.position}</p>
                         <p className="text-primary font-bold">{exp.company} • {exp.location}</p>
                         <p className="text-xxs text-slate-400 font-medium italic">
                           {exp.startDate ? new Date(exp.startDate).toLocaleDateString() : ''} - {exp.current ? 'Present' : exp.endDate ? new Date(exp.endDate).toLocaleDateString() : ''}
                         </p>
+                        {exp.cgpa && (
+                          <p className="text-xxs text-slate-400 font-medium">Performance Rating: {exp.cgpa}</p>
+                        )}
+                        {exp.marksheetUrl && (
+                          <a
+                            href={exp.marksheetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-1 text-xxs text-indigo-650 hover:underline bg-indigo-50/50 dark:bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900"
+                          >
+                            <FileText className="h-3 w-3" /> View Certificate / Letter
+                          </a>
+                        )}
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button onClick={() => { setEditingExp(idx); setExpOpen(true); }} className="p-1.5 rounded bg-card border text-primary"><Edit className="h-4 w-4" /></button>

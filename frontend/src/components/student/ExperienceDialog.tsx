@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X } from 'lucide-react';
+import { X, Upload, FileText } from 'lucide-react';
+import api from '../../config/api';
 
 const experienceSchema = z.object({
   company: z.string().min(1, 'Company name is required'),
@@ -11,7 +12,9 @@ const experienceSchema = z.object({
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().optional().or(z.literal('')),
   current: z.boolean(),
-  description: z.string().optional().or(z.literal(''))
+  description: z.string().optional().or(z.literal('')),
+  cgpa: z.string().optional().or(z.literal('')),
+  marksheetUrl: z.string().optional().or(z.literal(''))
 });
 
 type ExperienceFields = z.infer<typeof experienceSchema>;
@@ -29,20 +32,27 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
   onSave,
   initialData
 }) => {
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docError, setDocError] = useState('');
+
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors }
   } = useForm<ExperienceFields>({
     resolver: zodResolver(experienceSchema),
     defaultValues: {
-      current: false
+      current: false,
+      cgpa: '',
+      marksheetUrl: ''
     }
   });
 
   const isCurrent = watch('current');
+  const marksheetUrlVal = watch('marksheetUrl');
 
   useEffect(() => {
     if (initialData) {
@@ -58,7 +68,9 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
         startDate: formatDate(initialData.startDate),
         endDate: formatDate(initialData.endDate),
         current: !!initialData.current,
-        description: initialData.description || ''
+        description: initialData.description || '',
+        cgpa: initialData.cgpa || '',
+        marksheetUrl: initialData.marksheetUrl || ''
       });
     } else {
       reset({
@@ -68,10 +80,32 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
         startDate: '',
         endDate: '',
         current: false,
-        description: ''
+        description: '',
+        cgpa: '',
+        marksheetUrl: ''
       });
     }
+    setDocError('');
   }, [initialData, reset, isOpen]);
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('document', file);
+    setUploadingDoc(true);
+    setDocError('');
+    try {
+      const res = await api.post('/student/document/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setValue('marksheetUrl', res.data.url);
+    } catch (err: any) {
+      setDocError(err.response?.data?.message || 'Failed to upload document');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -184,6 +218,47 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
             <label htmlFor="current-job" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               I am currently working in this role
             </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                CGPA / Performance Rating
+              </label>
+              <input
+                type="text"
+                className="block w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors"
+                placeholder="e.g. 4.5/5 or Excellent"
+                {...register('cgpa')}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Experience Certificate / Marksheet
+              </label>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold cursor-pointer hover:bg-slate-100 transition-colors border-slate-200 dark:border-slate-800">
+                  <Upload className="h-4 w-4" />
+                  {uploadingDoc ? 'Uploading...' : 'Choose File'}
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={handleDocUpload}
+                  />
+                </label>
+                {marksheetUrlVal ? (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                    <FileText className="h-3.5 w-3.5" />
+                    Uploaded
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground font-semibold">No file uploaded</span>
+                )}
+              </div>
+              {docError && <p className="text-[11px] text-rose-500">{docError}</p>}
+            </div>
           </div>
 
           <div className="space-y-1.5">
