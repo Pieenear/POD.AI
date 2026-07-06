@@ -6,11 +6,11 @@ import { X, Upload, FileText, Trash2, Eye } from 'lucide-react';
 import api from '../../config/api';
 
 const educationSchema = z.object({
-  institution: z.string().min(1, 'Institution is required'),
+  institution: z.string().optional(),
   degree: z.string().min(1, 'Degree is required'),
-  fieldOfStudy: z.string().min(1, 'Field of study is required'),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().optional().or(z.literal('')),
+  fieldOfStudy: z.string().optional(),
+  startYear: z.string().optional(),
+  endYear: z.string().min(1, 'Year is required'),
   current: z.boolean(),
   grade: z.string().optional().or(z.literal('')),
   marksheetUrl: z.string().optional().or(z.literal(''))
@@ -69,17 +69,17 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
 
   useEffect(() => {
     if (initialData) {
-      const formatDate = (dateStr?: string) => {
+      const getYearFromDate = (dateStr?: string) => {
         if (!dateStr) return '';
-        return dateStr.split('T')[0];
+        return String(new Date(dateStr).getFullYear());
       };
       
       reset({
-        institution: initialData.institution || '',
+        institution: initialData.institution || 'MIT School of Computing',
         degree: initialData.degree || '',
         fieldOfStudy: initialData.fieldOfStudy || '',
-        startDate: formatDate(initialData.startDate),
-        endDate: formatDate(initialData.endDate),
+        startYear: getYearFromDate(initialData.startDate),
+        endYear: getYearFromDate(initialData.endDate),
         current: !!initialData.current,
         grade: initialData.grade || '',
         marksheetUrl: initialData.marksheetUrl || ''
@@ -98,11 +98,11 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
       );
     } else {
       reset({
-        institution: '',
+        institution: 'MIT School of Computing',
         degree: '',
         fieldOfStudy: '',
-        startDate: '',
-        endDate: '',
+        startYear: '',
+        endYear: '',
         current: false,
         grade: '',
         marksheetUrl: ''
@@ -160,7 +160,22 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
   if (!isOpen) return null;
 
   const onSubmit = (data: EducationFields) => {
-    // Process semester details: convert empty inputs to undefined or parse numbers
+    const startY = data.startYear ? parseInt(data.startYear) : undefined;
+    const endY = data.endYear ? parseInt(data.endYear) : undefined;
+
+    let startDateStr = '';
+    let endDateStr = '';
+
+    if (selectedDegree === 'Degree (UG/PG)') {
+      if (startY) startDateStr = `${startY}-06-01`;
+      if (endY) endDateStr = `${endY}-05-31`;
+    } else {
+      if (endY) {
+        startDateStr = `${endY - 1}-06-01`;
+        endDateStr = `${endY}-05-31`;
+      }
+    }
+
     const finalSemesters = selectedDegree === 'Degree (UG/PG)'
       ? semestersState.map(s => ({
           year: Number(s.year),
@@ -172,7 +187,6 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
         }))
       : undefined;
 
-    // Calculate aggregates if UG/PG
     let aggregateCgpa: number | undefined = undefined;
     let totalClosedBacklogs: number | undefined = undefined;
     let totalLiveBacklogs: number | undefined = undefined;
@@ -187,17 +201,28 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
     }
 
     const finalData = {
-      ...data,
+      institution: 'MIT School of Computing',
+      degree: data.degree,
+      fieldOfStudy: selectedDegree === 'Degree (UG/PG)' ? data.fieldOfStudy || 'Computer Science' : (selectedDegree === 'Secondary (10th)' ? 'Secondary Education' : 'Higher Secondary Education'),
+      startDate: startDateStr,
+      endDate: data.current ? '' : endDateStr,
+      current: data.current,
+      grade: selectedDegree === 'Degree (UG/PG)' && aggregateCgpa !== undefined ? String(aggregateCgpa) : data.grade,
+      marksheetUrl: data.marksheetUrl,
       semesters: finalSemesters,
       aggregateCgpa,
       totalClosedBacklogs,
-      totalLiveBacklogs,
-      grade: selectedDegree === 'Degree (UG/PG)' && aggregateCgpa !== undefined ? String(aggregateCgpa) : data.grade
+      totalLiveBacklogs
     };
 
     onSave(finalData);
     onClose();
   };
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 40 }, (_, i) => String(currentYear + 5 - i));
+
+  const isSchoolEducation = selectedDegree === 'Secondary (10th)' || selectedDegree === 'Higher Secondary (12th)';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
@@ -207,40 +232,24 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
         
         {/* Modal Header */}
         <div className="px-6 py-4 border-b flex justify-between items-center">
-          <h3 className="text-lg font-bold">
+          <h3 className="text-base font-extrabold text-foreground">
             {initialData ? 'Edit Education' : 'Add Education'}
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground focus:outline-none">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Modal Body / Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              Institution / University
-            </label>
-            <input
-              type="text"
-              className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
-                errors.institution ? 'border-rose-450 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
-              }`}
-              placeholder="e.g. Stanford University"
-              {...register('institution')}
-            />
-            {errors.institution && (
-              <p className="text-xs text-rose-500">{errors.institution.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
+          
+          <div className={`${isSchoolEducation ? 'grid grid-cols-1' : 'grid grid-cols-2'} gap-4`}>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
                 Degree
               </label>
               <select
-                className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
+                className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors ${
                   errors.degree ? 'border-rose-450 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
                 }`}
                 {...register('degree')}
@@ -251,266 +260,260 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
                 <option value="Degree (UG/PG)">Degree (UG/PG)</option>
               </select>
               {errors.degree && (
-                <p className="text-xs text-rose-500">{errors.degree.message}</p>
+                <p className="text-xxs text-rose-500 font-bold">{errors.degree.message}</p>
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Field of Study
-              </label>
-              <input
-                type="text"
-                className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
-                  errors.fieldOfStudy ? 'border-rose-450 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
-                }`}
-                placeholder="e.g. Computer Science"
-                {...register('fieldOfStudy')}
-              />
-              {errors.fieldOfStudy && (
-                <p className="text-xs text-rose-500">{errors.fieldOfStudy.message}</p>
+            {!isSchoolEducation && selectedDegree !== '' && (
+              <div className="space-y-1.5">
+                <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
+                  Field of Study
+                </label>
+                <input
+                  type="text"
+                  className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors ${
+                    errors.fieldOfStudy ? 'border-rose-450 focus:ring-rose-500/10' : 'border-slate-200 dark:border-slate-800'
+                  }`}
+                  placeholder="e.g. Computer Science"
+                  {...register('fieldOfStudy')}
+                />
+                {errors.fieldOfStudy && (
+                  <p className="text-xxs text-rose-500 font-bold">{errors.fieldOfStudy.message}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {selectedDegree !== '' && (
+            <>
+              {isSchoolEducation ? (
+                // Only ask for Passing Year for 10th and 12th
+                <div className="space-y-1.5">
+                  <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
+                    Passing Year
+                  </label>
+                  <select
+                    className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors ${
+                      errors.endYear ? 'border-rose-450' : 'border-slate-200 dark:border-slate-800'
+                    }`}
+                    {...register('endYear')}
+                  >
+                    <option value="">Select Passing Year</option>
+                    {yearOptions.map(yr => (
+                      <option key={yr} value={yr}>{yr}</option>
+                    ))}
+                  </select>
+                  {errors.endYear && (
+                    <p className="text-xxs text-rose-500 font-bold">{errors.endYear.message}</p>
+                  )}
+                </div>
+              ) : (
+                // Ask for Start Year and End Year for Degree
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
+                      Start Year
+                    </label>
+                    <select
+                      className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors ${
+                        errors.startYear ? 'border-rose-450' : 'border-slate-200 dark:border-slate-800'
+                      }`}
+                      {...register('startYear')}
+                    >
+                      <option value="">Select Start Year</option>
+                      {yearOptions.map(yr => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
+                      End Year
+                    </label>
+                    <select
+                      disabled={isCurrent}
+                      className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors ${
+                        errors.endYear ? 'border-rose-450' : 'border-slate-200 dark:border-slate-800'
+                      } disabled:opacity-40`}
+                      {...register('endYear')}
+                    >
+                      <option value="">Select End Year</option>
+                      {yearOptions.map(yr => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                    {errors.endYear && !isCurrent && (
+                      <p className="text-xxs text-rose-500 font-bold">{errors.endYear.message}</p>
+                    )}
+                  </div>
+                </div>
               )}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Start Date
-              </label>
-              <input
-                type="date"
-                className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
-                  errors.startDate ? 'border-rose-450' : 'border-slate-200 dark:border-slate-800'
-                }`}
-                {...register('startDate')}
-              />
-              {errors.startDate && (
-                <p className="text-xs text-rose-500">{errors.startDate.message}</p>
+              {!isSchoolEducation && (
+                <div className="flex items-center gap-2 py-1">
+                  <input
+                    id="current-edu"
+                    type="checkbox"
+                    className="rounded border-slate-350 text-primary focus:ring-primary h-4 w-4"
+                    {...register('current')}
+                  />
+                  <label htmlFor="current-edu" className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                    I am currently studying here
+                  </label>
+                </div>
               )}
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                End Date
-              </label>
-              <input
-                type="date"
-                disabled={isCurrent}
-                className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
-                  errors.endDate ? 'border-rose-450' : 'border-slate-200 dark:border-slate-800'
-                } disabled:opacity-40`}
-                {...register('endDate')}
-              />
-            </div>
-          </div>
+              {/* Grade details and marksheets */}
+              <div className={selectedDegree === 'Degree (UG/PG)' ? 'grid grid-cols-2 gap-4 border-t pt-4' : 'grid grid-cols-2 gap-4'}>
+                <div className="space-y-1.5">
+                  <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
+                    Grade (CGPA / Percentage)
+                  </label>
+                  <input
+                    type="text"
+                    className="block w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                    placeholder="e.g. 9.1 CGPA or 85%"
+                    {...register('grade')}
+                  />
+                </div>
 
-          <div className="flex items-center gap-2 py-1">
-            <input
-              id="current-edu"
-              type="checkbox"
-              className="rounded border-slate-300 dark:border-slate-750 text-indigo-600 focus:ring-indigo-500"
-              {...register('current')}
-            />
-            <label htmlFor="current-edu" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              I am currently studying here
-            </label>
-          </div>
+                <div className="space-y-1.5">
+                  <label className="text-xxs font-black text-slate-700 dark:text-slate-350 uppercase tracking-wider">
+                    Marksheet File
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold cursor-pointer hover:bg-slate-100 transition-colors border-slate-200 dark:border-slate-800">
+                      <Upload className="h-4 w-4" />
+                      {uploadingDoc ? 'Uploading...' : 'Choose File'}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={handleDocUpload}
+                      />
+                    </label>
+                    {marksheetUrlVal ? (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                        <FileText className="h-3.5 w-3.5" />
+                        Uploaded
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-semibold">No file uploaded</span>
+                    )}
+                  </div>
+                  {docError && <p className="text-[11px] text-rose-500">{docError}</p>}
+                </div>
+              </div>
 
-          {/* Conditional Semester-wise table for Degree (UG/PG) */}
-          {selectedDegree === 'Degree (UG/PG)' ? (
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="text-sm font-extrabold text-foreground">Semester Academic Details</h4>
-              <div className="overflow-x-auto border rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead>
-                    <tr className="border-b bg-slate-100 dark:bg-slate-850 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                      <th className="p-3">Year</th>
-                      <th className="p-3">Semester</th>
-                      <th className="p-3">Aggregate CGPA</th>
-                      <th className="p-3">Closed Backlogs</th>
-                      <th className="p-3">Live Backlogs</th>
-                      <th className="p-3">Marksheet</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {semestersState.map((sem, idx) => (
-                      <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/25">
-                        <td className="p-3 font-bold text-slate-500">{sem.year}</td>
-                        <td className="p-3 font-extrabold text-slate-700 dark:text-slate-300">{sem.semester}</td>
-                        <td className="p-3">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="10"
-                            placeholder="0.00"
-                            className="w-20 px-2 py-1 border rounded bg-card focus:outline-none"
-                            value={sem.cgpa}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const updated = [...semestersState];
-                              updated[idx].cgpa = val;
-                              setSemestersState(updated);
-                            }}
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            className="w-16 px-2 py-1 border rounded bg-card focus:outline-none"
-                            value={sem.closedBacklogs}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const updated = [...semestersState];
-                              updated[idx].closedBacklogs = val;
-                              setSemestersState(updated);
-                            }}
-                          />
-                        </td>
-                        <td className="p-3">
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            className="w-16 px-2 py-1 border rounded bg-card focus:outline-none"
-                            value={sem.liveBacklogs}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const updated = [...semestersState];
-                              updated[idx].liveBacklogs = val;
-                              setSemestersState(updated);
-                            }}
-                          />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-1.5">
-                            {sem.marksheetUrl ? (
-                              <div className="flex items-center gap-1">
-                                <a
-                                  href={sem.marksheetUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="View Marksheet"
-                                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSemesterDeleteFile(idx)}
-                                  title="Delete Marksheet"
-                                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-rose-500"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                                <label className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-indigo-650 cursor-pointer">
-                                  <Upload className="h-3.5 w-3.5" />
+              {/* Conditional Semester-wise table for Degree (UG/PG) */}
+              {selectedDegree === 'Degree (UG/PG)' && (
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Semester Academic Details</h4>
+                  <div className="overflow-x-auto border rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                    <table className="w-full text-xs text-left border-collapse">
+                      <thead>
+                        <tr className="border-b bg-slate-100 dark:bg-slate-850 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          <th className="p-3">Year</th>
+                          <th className="p-3">Semester</th>
+                          <th className="p-3">Aggregate CGPA</th>
+                          <th className="p-3">Closed Backlogs</th>
+                          <th className="p-3">Live Backlogs</th>
+                          <th className="p-3">Marksheet</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {semestersState.map((sem, idx) => (
+                          <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/25">
+                            <td className="p-3 font-bold text-slate-500">{sem.year}</td>
+                            <td className="p-3 font-extrabold text-slate-700 dark:text-slate-300">{sem.semester}</td>
+                            <td className="p-3">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="10"
+                                placeholder="0.00"
+                                className="w-20 px-2 py-1 border rounded bg-card focus:outline-none"
+                                value={sem.cgpa}
+                                onChange={(e) => {
+                                  const updated = [...semestersState];
+                                  updated[idx].cgpa = e.target.value;
+                                  setSemestersState(updated);
+                                }}
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                className="w-16 px-2 py-1 border rounded bg-card focus:outline-none"
+                                value={sem.closedBacklogs}
+                                onChange={(e) => {
+                                  const updated = [...semestersState];
+                                  updated[idx].closedBacklogs = e.target.value;
+                                  setSemestersState(updated);
+                                }}
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                className="w-16 px-2 py-1 border rounded bg-card focus:outline-none"
+                                value={sem.liveBacklogs}
+                                onChange={(e) => {
+                                  const updated = [...semestersState];
+                                  updated[idx].liveBacklogs = e.target.value;
+                                  setSemestersState(updated);
+                                }}
+                              />
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-1.5">
+                                <label className="flex items-center gap-1 px-2.5 py-1 border rounded bg-card text-[10px] font-bold cursor-pointer hover:bg-slate-100 transition-colors">
+                                  <Upload className="h-3 w-3" />
+                                  Upload
                                   <input
                                     type="file"
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     className="hidden"
+                                    disabled={uploadingSemIdx !== null}
                                     onChange={(e) => handleSemesterUpload(e, idx)}
                                   />
                                 </label>
+                                {sem.marksheetUrl && (
+                                  <div className="flex items-center gap-1">
+                                    <a
+                                      href={sem.marksheetUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-primary hover:text-primary/80"
+                                      title="View File"
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSemesterDeleteFile(idx)}
+                                      className="text-rose-600 hover:text-rose-500"
+                                      title="Delete File"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            ) : (
-                              <label className="p-1.5 border rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 transition-colors flex items-center justify-center cursor-pointer w-8 h-8">
-                                <Upload className="h-4 w-4 text-slate-500" />
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  className="hidden"
-                                  onChange={(e) => handleSemesterUpload(e, idx)}
-                                />
-                              </label>
-                            )}
-                            {uploadingSemIdx === idx && (
-                              <span className="text-[10px] text-muted-foreground animate-pulse">Uploading...</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Aggregates row matching screenshot */}
-                    <tr className="bg-slate-100 dark:bg-slate-850 font-bold border-t border-slate-250">
-                      <td className="p-3" colSpan={2}>Aggregate CGPA *</td>
-                      <td className="p-3">
-                        <input
-                          type="text"
-                          readOnly
-                          className="w-20 px-2 py-1 border rounded bg-secondary/35 text-slate-500 font-extrabold focus:outline-none"
-                          value={
-                            semestersState.map(s => parseFloat(s.cgpa)).filter(n => !isNaN(n)).length > 0
-                              ? (semestersState.map(s => parseFloat(s.cgpa)).filter(n => !isNaN(n)).reduce((a, b) => a + b, 0) /
-                                 semestersState.map(s => parseFloat(s.cgpa)).filter(n => !isNaN(n)).length).toFixed(2)
-                              : '0.00'
-                          }
-                        />
-                      </td>
-                      <td className="p-3">
-                        <input
-                          type="text"
-                          readOnly
-                          className="w-16 px-2 py-1 border rounded bg-secondary/35 text-slate-500 font-extrabold focus:outline-none"
-                          value={semestersState.map(s => parseInt(s.closedBacklogs)).filter(n => !isNaN(n)).reduce((a, b) => a + b, 0)}
-                        />
-                      </td>
-                      <td className="p-3" colSpan={2}>
-                        <input
-                          type="text"
-                          readOnly
-                          className="w-16 px-2 py-1 border rounded bg-secondary/35 text-slate-500 font-extrabold focus:outline-none"
-                          value={semestersState.map(s => parseInt(s.liveBacklogs)).filter(n => !isNaN(n)).reduce((a, b) => a + b, 0)}
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Grade (CGPA / Percentage)
-                </label>
-                <input
-                  type="text"
-                  className="block w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors"
-                  placeholder="e.g. 9.1 CGPA or 85%"
-                  {...register('grade')}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Marksheet File
-                </label>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-1.5 px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-xs font-bold cursor-pointer hover:bg-slate-100 transition-colors border-slate-200 dark:border-slate-800">
-                    <Upload className="h-4 w-4" />
-                    {uploadingDoc ? 'Uploading...' : 'Choose File'}
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="hidden"
-                      onChange={handleDocUpload}
-                    />
-                  </label>
-                  {marksheetUrlVal ? (
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
-                      <FileText className="h-3.5 w-3.5" />
-                      Uploaded
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground font-semibold">No file uploaded</span>
-                  )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                {docError && <p className="text-[11px] text-rose-500">{docError}</p>}
-              </div>
+              )}
             </>
           )}
 
@@ -519,13 +522,13 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="h-10 px-4 border rounded-lg hover:bg-muted text-sm font-semibold transition-colors"
+              className="h-10 px-4 border rounded-xl hover:bg-muted text-xs font-bold transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
+              className="h-10 px-4 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-black transition-colors"
             >
               Save Details
             </button>
