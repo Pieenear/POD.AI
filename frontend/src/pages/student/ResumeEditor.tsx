@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../config/api';
 import { EducationDialog } from '../../components/student/EducationDialog';
 import { ExperienceDialog } from '../../components/student/ExperienceDialog';
@@ -49,6 +49,7 @@ const ToggleSwitch: React.FC<{
 
 export const ResumeEditor: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -675,19 +676,30 @@ export const ResumeEditor: React.FC = () => {
           {/* Header Action Buttons for standard forms */}
           {activeTab !== 'preview' && (
             <div className="absolute top-6 right-6 flex gap-2 no-print">
+              <input 
+                type="file" 
+                ref={resumeInputRef} 
+                accept=".pdf" 
+                className="hidden" 
+                disabled={uploadingResume}
+                onChange={handleUploadResumeFile} 
+              />
               <button
-                onClick={() => setActiveTab('attachments')}
+                type="button"
+                onClick={() => resumeInputRef.current?.click()}
                 className="px-3 py-1.5 border border-border text-slate-650 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
               >
-                Upload Resume
+                {uploadingResume ? 'Uploading...' : 'Upload Resume'}
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('preview')}
                 className="px-3 py-1.5 bg-primary hover:bg-primary/95 text-primary-foreground rounded-lg text-xs font-bold transition-all shadow-md active:scale-95"
               >
                 Generate Resume
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('attachments')}
                 className="px-3 py-1.5 border border-border text-slate-650 hover:bg-secondary/50 rounded-lg text-xs font-bold transition-all shadow-sm"
               >
