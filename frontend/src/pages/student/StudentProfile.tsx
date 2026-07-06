@@ -15,16 +15,7 @@ import {
   AlertCircle,
   CheckCircle,
   Award,
-  X,
-  Phone,
-  Paperclip,
-  Users,
-  Briefcase,
-  BookOpen,
-  Shield,
-  Info,
-  UserCheck,
-  FileSignature
+  X
 } from 'lucide-react';
 
 export const StudentProfile: React.FC = () => {
@@ -34,23 +25,10 @@ export const StudentProfile: React.FC = () => {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Consolidated Tabs
-  const [activeTab, setActiveTab] = useState<
-    | 'basic'
-    | 'contact'
-    | 'family'
-    | 'education'
-    | 'attachments'
-    | 'experience'
-    | 'internship'
-    | 'projects'
-    | 'publications'
-    | 'seminars'
-    | 'certifications'
-    | 'responsibility'
-    | 'other_details'
-    | 'references'
-    | 'placement_policy'
-  >('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'education_experience' | 'projects_publications' | 'skills_development' | 'documents_policy'>('basic');
+
+  // Collapsible Family details state
+  const [familyCollapsed, setFamilyCollapsed] = useState(true);
 
   // Dialog controls
   const [eduOpen, setEduOpen] = useState(false);
@@ -184,7 +162,7 @@ export const StudentProfile: React.FC = () => {
   const progressPercent = completedCount * 20;
 
   // Save Handlers per Tab
-  const handleSaveBasicSection = async (type: 'basic' | 'contact' | 'family') => {
+  const handleSaveBasicInfo = async () => {
     try {
       const payload = {
         enrollmentNumber,
@@ -204,10 +182,9 @@ export const StudentProfile: React.FC = () => {
       };
       const res = await api.put('/student/profile', payload);
       setProfile(res.data.data.profile);
-      const label = type === 'basic' ? 'Basic details' : type === 'contact' ? 'Contact details' : 'Family details';
-      showNotice(`${label} saved successfully.`);
+      showNotice('Basic Info saved successfully.');
     } catch {
-      showNotice('Failed to save details', 'error');
+      showNotice('Failed to save basic information', 'error');
     }
   };
 
@@ -244,7 +221,7 @@ export const StudentProfile: React.FC = () => {
     }
   };
 
-  const handleSaveDocumentsSection = async (type: 'other' | 'references' | 'policy') => {
+  const handleSaveDocumentsPolicy = async () => {
     try {
       const payload = {
         references: referencesText,
@@ -253,10 +230,9 @@ export const StudentProfile: React.FC = () => {
       };
       const res = await api.put('/student/profile', payload);
       setProfile(res.data.data.profile);
-      const label = type === 'other' ? 'Other details' : type === 'references' ? 'References' : 'Placement policy';
-      showNotice(`${label} updated successfully.`);
+      showNotice('Documents & Policy updated successfully.');
     } catch {
-      showNotice('Failed to save details.', 'error');
+      showNotice('Failed to save document config.', 'error');
     }
   };
 
@@ -281,112 +257,6 @@ export const StudentProfile: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
-  };
-
-  const getCategorizedAttachments = () => {
-    const academics = {
-      currentCourse: [] as { name: string; url: string }[],
-      otherDegree: [] as { name: string; url: string }[],
-      twelfth: [] as { name: string; url: string }[],
-      diploma: [] as { name: string; url: string }[],
-      tenth: [] as { name: string; url: string }[]
-    };
-
-    const certificates = {
-      experience: [] as { name: string; url: string }[],
-      internship: [] as { name: string; url: string }[],
-      assessment: [] as { name: string; url: string }[],
-      responsibility: [] as { name: string; url: string }[],
-      other: [] as { name: string; url: string }[]
-    };
-
-    const projectsList = [] as { name: string; url: string }[];
-    const identityProofsList = [] as { name: string; url: string }[];
-
-    // 1. Academic Records from Education
-    if (profile?.education) {
-      profile.education.forEach((edu: any) => {
-        const deg = (edu.degree || '').toLowerCase();
-        
-        if (deg.includes('10th') || deg.includes('secondary') || deg.includes('school') || deg.includes('matric')) {
-          if (edu.marksheetUrl) {
-            academics.tenth.push({ name: `[Marksheet] Marksheet X.png`, url: edu.marksheetUrl });
-          }
-        } else if (deg.includes('12th') || deg.includes('higher secondary') || deg.includes('hsc') || deg.includes('intermediate')) {
-          if (edu.marksheetUrl) {
-            academics.twelfth.push({ name: `[Marksheet] Marksheet XII.png`, url: edu.marksheetUrl });
-          }
-        } else if (deg.includes('diploma')) {
-          if (edu.marksheetUrl) {
-            academics.diploma.push({ name: `[Marksheet] Diploma Marksheet.pdf`, url: edu.marksheetUrl });
-          }
-        } else if (deg.includes('ug') || deg.includes('pg') || deg.includes('b.tech') || deg.includes('btech') || deg.includes('degree') || deg.includes('graduate') || deg.includes('master') || deg.includes('bachelor') || deg.includes('b.sc') || deg.includes('bsc') || deg.includes('bca') || deg.includes('mca')) {
-          // Add semesters marksheets
-          if (edu.semesters) {
-            edu.semesters.forEach((sem: any) => {
-              if (sem.marksheetUrl) {
-                academics.currentCourse.push({
-                  name: `[Marksheet] result sem ${sem.semester || sem.year}.pdf`,
-                  url: sem.marksheetUrl
-                });
-              }
-            });
-          }
-          // If the main degree has a marksheet url, add it as other degree or current course marksheet
-          if (edu.marksheetUrl) {
-            academics.otherDegree.push({ name: `[Marksheet] Degree Certificate - ${edu.degree}.pdf`, url: edu.marksheetUrl });
-          }
-        } else {
-          if (edu.marksheetUrl) {
-            academics.otherDegree.push({ name: `[Marksheet] Certificate - ${edu.degree}.pdf`, url: edu.marksheetUrl });
-          }
-        }
-      });
-    }
-
-    // 2. Experience & Internships
-    if (profile?.experience) {
-      profile.experience.forEach((exp: any) => {
-        const company = exp.company || 'Company';
-        if (exp.marksheetUrl) {
-          if (exp.experienceType === 'internship') {
-            certificates.internship.push({
-              name: `${profile.firstName || 'Student'} ${company}-Offer Letter.pdf`,
-              url: exp.marksheetUrl
-            });
-          } else {
-            certificates.experience.push({
-              name: `${profile.firstName || 'Student'} ${company}-Experience Letter.pdf`,
-              url: exp.marksheetUrl
-            });
-          }
-        }
-      });
-    }
-
-    // 3. Assessment / Certifications
-    if (profile?.certifications) {
-      profile.certifications.forEach((cert: any) => {
-        if (cert.credentialUrl) {
-          certificates.assessment.push({
-            name: `${cert.issuingOrganization || 'Assessment'}-${cert.name}.pdf`,
-            url: cert.credentialUrl
-          });
-        }
-      });
-    }
-
-    // 4. Other Attachments / Resume versions
-    if (profile?.resumes) {
-      profile.resumes.forEach((res: any, idx: number) => {
-        certificates.other.push({
-          name: `[Resume] Version ${idx + 1}.pdf`,
-          url: `http://localhost:5000${res.url}`
-        });
-      });
-    }
-
-    return { academics, certificates, projectsList, identityProofsList };
   };
 
   // Skill tag handlers
@@ -576,162 +446,131 @@ export const StudentProfile: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start mt-6 text-left">
-        {/* Left Column: Vertical Sidebar Navigation */}
-        <div className="md:col-span-1 bg-card border rounded-2xl p-4 space-y-1 md:sticky md:top-6 shadow-sm">
-          <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest px-3 mb-2">Profile Sections</p>
-          {[
-            { id: 'basic', label: 'Basic Details', icon: User },
-            { id: 'contact', label: 'Contact Details', icon: Phone },
-            { id: 'family', label: 'Family Details', icon: Users },
-            { id: 'education', label: 'Education', icon: GraduationCap },
-            { id: 'attachments', label: 'Attachments / Resume', icon: Paperclip },
-            { id: 'experience', label: 'Professional Experience', icon: Briefcase },
-            { id: 'internship', label: 'Internships', icon: Award },
-            { id: 'projects', label: 'Projects', icon: Code },
-            { id: 'publications', label: 'Publications / Research', icon: FileText },
-            { id: 'seminars', label: 'Seminars & Workshops', icon: BookOpen },
-            { id: 'certifications', label: 'Certifications / Skills', icon: Award },
-            { id: 'responsibility', label: 'Positions of Responsibility', icon: Shield },
-            { id: 'other_details', label: 'Other Details', icon: Info },
-            { id: 'references', label: 'References', icon: UserCheck },
-            { id: 'placement_policy', label: 'Placement Policy', icon: FileSignature }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
-                  active
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                    : 'text-slate-650 hover:bg-secondary/40 dark:text-slate-400 dark:hover:bg-slate-800/40'
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="truncate">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* Horizontal Tabs Selection */}
+      <div className="flex border rounded-xl bg-secondary/25 p-1 flex-wrap gap-1">
+        {[
+          { id: 'basic', label: 'Basic Info', icon: User },
+          { id: 'education_experience', label: 'Education & Experience', icon: GraduationCap },
+          { id: 'projects_publications', label: 'Projects & Publications', icon: Code },
+          { id: 'skills_development', label: 'Skills & Development', icon: Award },
+          { id: 'documents_policy', label: 'Documents & Policy', icon: FileText }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                active ? 'bg-card text-foreground shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Right Column: Panel Body */}
-        <div className="md:col-span-3 bg-card border p-6 rounded-2xl shadow-sm space-y-6">
+      {/* Tab Panels */}
+      <div className="bg-card border p-6 rounded-2xl shadow-sm space-y-6">
+        
+        {/* Tab 1: Basic Info */}
+        {activeTab === 'basic' && (
+          <div className="space-y-6">
+            <div className="border-b pb-3">
+              <h3 className="text-base font-extrabold">Basic & Contact Info</h3>
+              <p className="text-xxs text-muted-foreground">General identification records, courses, and location details.</p>
+            </div>
 
-          {/* Section 1: Basic Details */}
-          {activeTab === 'basic' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Basic Details</h3>
-                <p className="text-xxs text-muted-foreground">General student identification records and photo avatar.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
-                {/* Photo Box */}
-                <div className="md:col-span-1 flex flex-col items-center gap-2">
-                  <div 
-                    onClick={() => photo && setIsLightboxOpen(true)}
-                    className={`h-24 w-24 rounded-2xl border bg-secondary flex items-center justify-center overflow-hidden ${photo ? 'cursor-zoom-in hover:opacity-85 transition-opacity' : ''}`}
-                    title={photo ? "Click to view full image" : ""}
-                  >
-                    {photo ? <img src={photo} alt="Student" className="h-full w-full object-cover" /> : <User className="h-10 w-10 text-slate-400" />}
-                  </div>
-                  <label className="px-3 py-1.5 rounded-lg border hover:bg-secondary text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors">
-                    <Upload className="h-3.5 w-3.5" />
-                    Upload Photo
-                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-                  </label>
-                </div>
-
-                {/* Basic Fields */}
-                <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">First Name</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={firstName} onChange={e => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Middle Name</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={middleName} onChange={e => setMiddleName(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Last Name</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={lastName} onChange={e => setLastName(e.target.value)} />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Enrollment Number</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={enrollmentNumber} onChange={e => setEnrollmentNumber(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Degree Course</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={course} onChange={e => setCourse(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Specialization</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={specialization} onChange={e => setSpecialization(e.target.value)} />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Gender</label>
-                    <select className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold" value={gender} onChange={e => setGender(e.target.value)}>
-                      <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Date of Birth</label>
-                    <input type="date" className="w-full border rounded-lg p-2 bg-secondary/10" value={dob} onChange={e => setDob(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Blood Group</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" placeholder="e.g. O+" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Marital Status</label>
-                    <select
-                      className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold"
-                      value={maritalStatus}
-                      onChange={e => setMaritalStatus(e.target.value)}
-                    >
-                      <option value="">Select Status</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500">Medical History / Allergies</label>
-                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" placeholder="e.g. None" value={medicalHistory} onChange={e => setMedicalHistory(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => handleSaveBasicSection('basic')}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+              
+              {/* Photo Box */}
+              <div className="md:col-span-1 flex flex-col items-center gap-2">
+                <div 
+                  onClick={() => photo && setIsLightboxOpen(true)}
+                  className={`h-24 w-24 rounded-2xl border bg-secondary flex items-center justify-center overflow-hidden ${photo ? 'cursor-zoom-in hover:opacity-85 transition-opacity' : ''}`}
+                  title={photo ? "Click to view full image" : ""}
                 >
-                  Save Basic Details
-                </button>
+                  {photo ? <img src={photo} alt="Student" className="h-full w-full object-cover" /> : <User className="h-10 w-10 text-slate-400" />}
+                </div>
+                <label className="px-3 py-1.5 rounded-lg border hover:bg-secondary text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors">
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload Photo
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                </label>
+              </div>
+
+              {/* Basic Fields */}
+              <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">First Name</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Middle Name</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={middleName} onChange={e => setMiddleName(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Last Name</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={lastName} onChange={e => setLastName(e.target.value)} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Enrollment Number</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={enrollmentNumber} onChange={e => setEnrollmentNumber(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Degree Course</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={course} onChange={e => setCourse(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Specialization</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={specialization} onChange={e => setSpecialization(e.target.value)} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Gender</label>
+                  <select className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold" value={gender} onChange={e => setGender(e.target.value)}>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Date of Birth</label>
+                  <input type="date" className="w-full border rounded-lg p-2 bg-secondary/10" value={dob} onChange={e => setDob(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Blood Group</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" placeholder="e.g. O+" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Marital Status</label>
+                  <select
+                    className="w-full border rounded-lg p-2 bg-secondary/15 text-xs font-semibold"
+                    value={maritalStatus}
+                    onChange={e => setMaritalStatus(e.target.value)}
+                  >
+                    <option value="">Select Status</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                  </select>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[10px] uppercase font-black text-slate-500">Medical History / Allergies</label>
+                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" placeholder="e.g. None" value={medicalHistory} onChange={e => setMedicalHistory(e.target.value)} />
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Section 2: Contact Details */}
-          {activeTab === 'contact' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Contact Details</h3>
-                <p className="text-xxs text-muted-foreground">Manage personal contact information, phone lines, and physical addresses.</p>
-              </div>
-
+            {/* Contact Details */}
+            <div className="border-t pt-5 space-y-4">
+              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Contact Details</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-black text-slate-500">Phone</label>
@@ -758,56 +597,54 @@ export const StudentProfile: React.FC = () => {
                   <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={zip} onChange={e => setZip(e.target.value)} />
                 </div>
               </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => handleSaveBasicSection('contact')}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save Contact Details
-                </button>
-              </div>
             </div>
-          )}
 
-          {/* Section 3: Family Details */}
-          {activeTab === 'family' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Family Details</h3>
-                <p className="text-xxs text-muted-foreground">Provide guardian or parent contact identification references.</p>
-              </div>
+            {/* Collapsible Family Details Subsection */}
+            <div className="border-t pt-5 space-y-4">
+              <button 
+                type="button" 
+                onClick={() => setFamilyCollapsed(!familyCollapsed)}
+                className="flex items-center justify-between w-full py-2.5 px-4 rounded-xl bg-secondary/20 font-extrabold text-xs uppercase text-slate-600 dark:text-slate-350 tracking-wider hover:bg-secondary/35 transition-colors"
+              >
+                <span>Collapsible Family Details</span>
+                <span>{familyCollapsed ? 'Show +' : 'Hide -'}</span>
+              </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold p-4 rounded-xl border bg-secondary/5">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-black text-slate-500">Father's Name</label>
-                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={fatherName} onChange={e => setFatherName(e.target.value)} />
+              {!familyCollapsed && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold animate-fade-in p-4 rounded-xl border bg-secondary/5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-black text-slate-500">Father's Name</label>
+                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={fatherName} onChange={e => setFatherName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-black text-slate-500">Mother's Name</label>
+                    <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={motherName} onChange={e => setMotherName(e.target.value)} />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-black text-slate-500">Mother's Name</label>
-                  <input type="text" className="w-full border rounded-lg p-2 bg-secondary/10" value={motherName} onChange={e => setMotherName(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => handleSaveBasicSection('family')}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save Family Details
-                </button>
-              </div>
+              )}
             </div>
-          )}
 
-          {/* Section 4: Education */}
-          {activeTab === 'education' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-end pt-4 border-t">
+              <button
+                type="button"
+                onClick={handleSaveBasicInfo}
+                className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors animate-pulse-once"
+              >
+                Save Basic details
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Education & Experience */}
+        {activeTab === 'education_experience' && (
+          <div className="space-y-8">
+            
+            {/* Education History */}
+            <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
-                  <h3 className="text-base font-extrabold">Education Details</h3>
+                  <h3 className="text-base font-extrabold">Education History</h3>
                   <p className="text-xxs text-muted-foreground">List academic degrees and grades.</p>
                 </div>
                 <button
@@ -851,33 +688,29 @@ export const StudentProfile: React.FC = () => {
                           <div className="border-t pt-2 mt-2">
                             <button
                               type="button"
-                              onClick={() => {
-                                setExpandedSemEdu(prev =>
-                                  isExpanded ? prev.filter(i => i !== idx) : [...prev, idx]
-                                );
-                              }}
-                              className="text-[10px] text-primary hover:underline font-extrabold uppercase tracking-wider flex items-center gap-1"
+                              onClick={() => setExpandedSemEdu(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
+                              className="text-xxs font-black text-indigo-650 hover:underline flex items-center gap-1 uppercase tracking-wider bg-secondary/50 px-2.5 py-1 rounded"
                             >
-                              {isExpanded ? 'Hide Semester Marks' : 'View Semester Marks'} ({edu.semesters.length})
+                              {isExpanded ? 'Hide Semester Details (-)' : 'Show Semester Details (+)'}
                             </button>
-
+                            
                             {isExpanded && (
-                              <div className="mt-2 overflow-x-auto border rounded-lg bg-card shadow-inner">
+                              <div className="mt-3 overflow-x-auto border rounded-lg bg-card/60 p-2">
                                 <table className="w-full text-[11px] text-left border-collapse">
                                   <thead>
-                                    <tr className="bg-secondary/40 border-b">
-                                      <th className="py-1.5 px-2 font-black text-slate-500 uppercase">Sem / Yr</th>
-                                      <th className="py-1.5 px-2 font-black text-slate-500 uppercase">CGPA / Grade</th>
-                                      <th className="py-1.5 px-2 font-black text-slate-500 uppercase">Closed Backlogs</th>
-                                      <th className="py-1.5 px-2 font-black text-slate-500 uppercase">Live Backlogs</th>
-                                      <th className="py-1.5 px-2 font-black text-slate-500 uppercase">Marksheet</th>
+                                    <tr className="border-b text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                      <th className="py-1 px-2">Sem</th>
+                                      <th className="py-1 px-2">CGPA</th>
+                                      <th className="py-1 px-2">Closed Backlogs</th>
+                                      <th className="py-1 px-2">Live Backlogs</th>
+                                      <th className="py-1 px-2">Marksheet</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y font-medium text-slate-700 dark:text-slate-350">
+                                  <tbody>
                                     {edu.semesters.map((sem: any, sIdx: number) => (
-                                      <tr key={sIdx}>
-                                        <td className="py-1.5 px-2 font-bold">{sem.semester || `Sem ${sem.year}`}</td>
-                                        <td className="py-1.5 px-2 font-mono">{sem.cgpa || 'N/A'}</td>
+                                      <tr key={sIdx} className="border-b last:border-0 hover:bg-slate-50/25">
+                                        <td className="py-1.5 px-2 font-bold">{sem.semester}</td>
+                                        <td className="py-1.5 px-2">{sem.cgpa !== undefined ? sem.cgpa : 'N/A'}</td>
                                         <td className="py-1.5 px-2">{sem.closedBacklogs !== undefined ? sem.closedBacklogs : '0'}</td>
                                         <td className="py-1.5 px-2">{sem.liveBacklogs !== undefined ? sem.liveBacklogs : '0'}</td>
                                         <td className="py-1.5 px-2">
@@ -886,7 +719,7 @@ export const StudentProfile: React.FC = () => {
                                               href={sem.marksheetUrl}
                                               target="_blank"
                                               rel="noopener noreferrer"
-                                              className="text-indigo-650 hover:underline font-bold"
+                                              className="text-indigo-600 hover:underline font-bold"
                                             >
                                               View File
                                             </a>
@@ -896,6 +729,12 @@ export const StudentProfile: React.FC = () => {
                                         </td>
                                       </tr>
                                     ))}
+                                    <tr className="bg-secondary/20 font-bold">
+                                      <td className="py-1.5 px-2">Agg / Total</td>
+                                      <td className="py-1.5 px-2">{edu.aggregateCgpa || edu.grade || 'N/A'}</td>
+                                      <td className="py-1.5 px-2">{edu.totalClosedBacklogs !== undefined ? edu.totalClosedBacklogs : '0'}</td>
+                                      <td className="py-1.5 px-2" colSpan={2}>{edu.totalLiveBacklogs !== undefined ? edu.totalLiveBacklogs : '0'}</td>
+                                    </tr>
                                   </tbody>
                                 </table>
                               </div>
@@ -912,336 +751,13 @@ export const StudentProfile: React.FC = () => {
                 </div>
               )}
             </div>
-          )}
 
-          {/* Section 5: Attachments */}
-          {activeTab === 'attachments' && (() => {
-            const { academics, certificates, projectsList, identityProofsList } = getCategorizedAttachments();
-            return (
-              <div className="space-y-6 animate-fade-in text-left">
-                <div className="border-b pb-3 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-base font-extrabold">Attachments</h3>
-                    <p className="text-xxs text-muted-foreground">Manage profile attachments, academic records, and certificates.</p>
-                  </div>
-                  
-                  {/* Uploader Trigger Button */}
-                  <label className="px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs uppercase rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm">
-                    {uploadingResume ? 'Uploading...' : 'Upload Resume'}
-                    <input type="file" accept=".pdf" className="hidden" disabled={uploadingResume} onChange={handleUploadResumeFile} />
-                  </label>
-                </div>
-
-                {/* Category 1: Academic Records */}
-                <div className="space-y-4 pt-4 border-t first:border-t-0 first:pt-0">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Academic Records</h4>
-                    <button 
-                      type="button" 
-                      onClick={() => setActiveTab('education')}
-                      className="text-[10px] text-primary hover:underline font-bold"
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  <div className="space-y-4 pl-2">
-                    {/* Current Course Marksheets */}
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Current Course Marksheets</p>
-                      {academics.currentCourse.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {academics.currentCourse.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Marksheets available.</p>
-                      )}
-                    </div>
-
-                    {/* Other Degree */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Other Degree</p>
-                      {academics.otherDegree.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {academics.otherDegree.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* 12th */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">12th</p>
-                      {academics.twelfth.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {academics.twelfth.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* Diploma */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Diploma</p>
-                      {academics.diploma.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {academics.diploma.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* 10th */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">10th</p>
-                      {academics.tenth.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {academics.tenth.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 italic mt-2">*All academic relevant attachments can be updated from the Education tab on the left.</p>
-                </div>
-
-                {/* Category 2: Certificates */}
-                <div className="space-y-4 pt-6 border-t">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Certificates</h4>
-                    <button 
-                      type="button" 
-                      onClick={() => setActiveTab('experience')}
-                      className="text-[10px] text-primary hover:underline font-bold"
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  <div className="space-y-4 pl-2">
-                    {/* Professional Experience */}
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Professional Experience</p>
-                      {certificates.experience.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {certificates.experience.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* Internship Certificates */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Internship Certificates</p>
-                      {certificates.internship.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {certificates.internship.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* Assessment Certificates */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Assessment Certificates</p>
-                      {certificates.assessment.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {certificates.assessment.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* Position of Responsibility Certificates */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Position of Responsibility Certificates</p>
-                      {certificates.responsibility.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {certificates.responsibility.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-
-                    {/* Other Attachments */}
-                    <div className="space-y-2 pt-2">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Other Attachments / Resumes</p>
-                      {certificates.other.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {certificates.other.map((file, fIdx) => (
-                            <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4.5 w-4.5 text-primary" />
-                                <span className="truncate text-foreground font-bold">{file.name}</span>
-                              </div>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground italic pl-2">No Attachments available.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 italic mt-2">*Attachments of the certificates can be updated from their respective tabs on the left.</p>
-                </div>
-
-                {/* Category 3: Projects */}
-                <div className="space-y-4 pt-6 border-t">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Projects</h4>
-                    <button 
-                      type="button" 
-                      onClick={() => setActiveTab('projects')}
-                      className="text-[10px] text-primary hover:underline font-bold"
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  {projectsList.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
-                      {projectsList.map((file, fIdx) => (
-                        <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4.5 w-4.5 text-primary" />
-                            <span className="truncate text-foreground font-bold">{file.name}</span>
-                          </div>
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="pl-2">
-                      <p className="text-[10px] text-muted-foreground italic">No Attachments available.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Category 4: Identity Proofs */}
-                <div className="space-y-4 pt-6 border-t">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Identity Proofs</h4>
-                    <button 
-                      type="button" 
-                      onClick={() => setActiveTab('basic')}
-                      className="text-[10px] text-primary hover:underline font-bold"
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  {identityProofsList.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
-                      {identityProofsList.map((file, fIdx) => (
-                        <div key={fIdx} className="p-3 bg-secondary/15 rounded-xl border flex items-center justify-between text-xs font-semibold">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4.5 w-4.5 text-primary" />
-                            <span className="truncate text-foreground font-bold">{file.name}</span>
-                          </div>
-                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="pl-2">
-                      <p className="text-[10px] text-muted-foreground italic">No Attachments available.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Section 6: Professional Experience */}
-          {activeTab === 'experience' && (
-            <div className="space-y-6 animate-fade-in">
+            {/* Experience & Internship */}
+            <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
-                  <h3 className="text-base font-extrabold">Professional Experience</h3>
-                  <p className="text-xxs text-muted-foreground">List historical full-time job employment details.</p>
+                  <h3 className="text-base font-extrabold">Professional Experience & Internships</h3>
+                  <p className="text-xxs text-muted-foreground">List historical internships and job employment details.</p>
                 </div>
                 <button
                   onClick={() => { setEditingExp(null); setExpOpen(true); }}
@@ -1251,113 +767,53 @@ export const StudentProfile: React.FC = () => {
                 </button>
               </div>
 
-              {profile?.experience?.filter((exp: any) => exp.experienceType === 'job' || !exp.experienceType).length > 0 ? (
+              {profile?.experience?.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
-                  {profile.experience
-                    .filter((exp: any) => exp.experienceType === 'job' || !exp.experienceType)
-                    .map((exp: any, idx: number) => {
-                      const realIndex = profile.experience.indexOf(exp);
-                      return (
-                        <div key={idx} className="p-4 rounded-xl border bg-secondary/15 flex justify-between items-center text-xs font-semibold animate-fade-in">
-                          <div className="space-y-1 text-left">
-                            <p className="text-sm font-bold text-foreground">{exp.position}</p>
-                            <p className="text-primary font-bold">{exp.company} • {exp.location}</p>
-                            <p className="text-xxs text-slate-400 font-medium italic">
-                              {exp.startDate ? new Date(exp.startDate).toLocaleDateString() : ''} - {exp.current ? 'Present' : exp.endDate ? new Date(exp.endDate).toLocaleDateString() : ''}
-                            </p>
-                            {exp.cgpa && (
-                              <p className="text-xxs text-slate-400 font-medium">Performance Rating / CGPA: {exp.cgpa}</p>
-                            )}
-                            {exp.marksheetUrl && (
-                              <a
-                                href={exp.marksheetUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 mt-1 text-xxs text-indigo-655 hover:underline bg-indigo-50/50 dark:bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900"
-                              >
-                                <FileText className="h-3 w-3" /> View Certificate
-                              </a>
-                            )}
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <button onClick={() => { setEditingExp(realIndex); setExpOpen(true); }} className="p-1.5 rounded bg-card border text-primary"><Edit className="h-4 w-4" /></button>
-                            <button onClick={() => removeExperience(realIndex)} className="p-1.5 rounded bg-card border text-rose-500"><Trash2 className="h-4 w-4" /></button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {profile.experience.map((exp: any, idx: number) => (
+                    <div key={idx} className="p-4 rounded-xl border bg-secondary/15 flex justify-between items-center text-xs font-semibold">
+                      <div className="space-y-1 text-left">
+                        <p className="text-sm font-bold text-foreground">{exp.position}</p>
+                        <p className="text-primary font-bold">{exp.company} • {exp.location}</p>
+                        <p className="text-xxs text-slate-400 font-medium italic">
+                          {exp.startDate ? new Date(exp.startDate).toLocaleDateString() : ''} - {exp.current ? 'Present' : exp.endDate ? new Date(exp.endDate).toLocaleDateString() : ''}
+                        </p>
+                        {exp.cgpa && (
+                          <p className="text-xxs text-slate-400 font-medium">Performance Rating: {exp.cgpa}</p>
+                        )}
+                        {exp.marksheetUrl && (
+                          <a
+                            href={exp.marksheetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-1 text-xxs text-indigo-650 hover:underline bg-indigo-50/50 dark:bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900"
+                          >
+                            <FileText className="h-3 w-3" /> View Certificate / Letter
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={() => { setEditingExp(idx); setExpOpen(true); }} className="p-1.5 rounded bg-card border text-primary"><Edit className="h-4 w-4" /></button>
+                        <button onClick={() => removeExperience(idx)} className="p-1.5 rounded bg-card border text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl bg-secondary/10">
-                  No professional experiences listed yet.
+                  No work experience listed yet.
                 </div>
               )}
             </div>
-          )}
 
-          {/* Section 7: Internship */}
-          {activeTab === 'internship' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex justify-between items-center border-b pb-3">
-                <div>
-                  <h3 className="text-base font-extrabold">Internships</h3>
-                  <p className="text-xxs text-muted-foreground">List historical internships and industrial trainee details.</p>
-                </div>
-                <button
-                  onClick={() => { setEditingExp(null); setExpOpen(true); }}
-                  className="px-3 py-1.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
-                >
-                  <Plus className="h-4 w-4" /> Add Internship
-                </button>
-              </div>
+          </div>
+        )}
 
-              {profile?.experience?.filter((exp: any) => exp.experienceType === 'internship').length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {profile.experience
-                    .filter((exp: any) => exp.experienceType === 'internship')
-                    .map((exp: any, idx: number) => {
-                      const realIndex = profile.experience.indexOf(exp);
-                      return (
-                        <div key={idx} className="p-4 rounded-xl border bg-secondary/15 flex justify-between items-center text-xs font-semibold animate-fade-in">
-                          <div className="space-y-1 text-left">
-                            <p className="text-sm font-bold text-foreground">{exp.position}</p>
-                            <p className="text-primary font-bold">{exp.company} • {exp.location}</p>
-                            <p className="text-xxs text-slate-400 font-medium italic">
-                              {exp.startDate ? new Date(exp.startDate).toLocaleDateString() : ''} - {exp.current ? 'Present' : exp.endDate ? new Date(exp.endDate).toLocaleDateString() : ''}
-                            </p>
-                            {exp.cgpa && (
-                              <p className="text-xxs text-slate-400 font-medium">Performance Rating / CGPA: {exp.cgpa}</p>
-                            )}
-                            {exp.marksheetUrl && (
-                              <a
-                                href={exp.marksheetUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 mt-1 text-xxs text-indigo-655 hover:underline bg-indigo-50/50 dark:bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900"
-                              >
-                                <FileText className="h-3 w-3" /> View Certificate
-                              </a>
-                            )}
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <button onClick={() => { setEditingExp(realIndex); setExpOpen(true); }} className="p-1.5 rounded bg-card border text-primary"><Edit className="h-4 w-4" /></button>
-                            <button onClick={() => removeExperience(realIndex)} className="p-1.5 rounded bg-card border text-rose-500"><Trash2 className="h-4 w-4" /></button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-xl bg-secondary/10">
-                  No internships listed yet.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Section 8: Projects */}
-          {activeTab === 'projects' && (
-            <div className="space-y-6 animate-fade-in">
+        {/* Tab 3: Projects & Publications */}
+        {activeTab === 'projects_publications' && (
+          <div className="space-y-8">
+            
+            {/* Software Projects */}
+            <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
                   <h3 className="text-base font-extrabold">Software Projects</h3>
@@ -1392,16 +848,11 @@ export const StudentProfile: React.FC = () => {
                 </div>
               )}
             </div>
-          )}
 
-          {/* Section 9: Publications */}
-          {activeTab === 'publications' && (
-            <div className="space-y-6 animate-fade-in text-xs font-semibold">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Publications / Research & Links</h3>
-                <p className="text-xxs text-muted-foreground">Add published papers, research journals, and coding profile links.</p>
-              </div>
-
+            {/* Social Links & Publications text area */}
+            <div className="space-y-4 border-t pt-5 text-xs font-semibold">
+              <h3 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Publications & Links</h3>
+              
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-black text-slate-500">GitHub Profile URL</label>
@@ -1417,216 +868,176 @@ export const StudentProfile: React.FC = () => {
                 </div>
                 <div className="space-y-1 sm:col-span-3">
                   <label className="text-[10px] uppercase font-black text-slate-500">Publications / Research / White Papers Details</label>
-                  <textarea rows={4} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Provide publication titles, DOI journals, or research paper links..." value={publicationsText} onChange={e => setPublicationsText(e.target.value)} />
+                  <textarea rows={3} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Provide publication titles, DOI journals, or research paper links..." value={publicationsText} onChange={e => setPublicationsText(e.target.value)} />
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2 border-t">
+              <div className="flex justify-end pt-2">
                 <button
                   type="button"
                   onClick={handleSaveProjectsPublications}
                   className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
                 >
-                  Save Publications & Links
+                  Save Projects & Publications
                 </button>
               </div>
             </div>
-          )}
 
-          {/* Section 10: Seminars */}
-          {activeTab === 'seminars' && (
-            <div className="space-y-6 animate-fade-in text-xs font-semibold">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Seminars / Trainings / Workshops</h3>
-                <p className="text-xxs text-muted-foreground">List professional development workshops or student bootcamps attended.</p>
+          </div>
+        )}
+
+        {/* Tab 4: Skills & Development */}
+        {activeTab === 'skills_development' && (
+          <div className="space-y-6">
+            <div className="border-b pb-3">
+              <h3 className="text-base font-extrabold">Skills & Personal Development</h3>
+              <p className="text-xxs text-muted-foreground">Manage skillset toolkit, certs, and responsibilities.</p>
+            </div>
+
+            {/* Skills tag deck */}
+            <div className="space-y-3">
+              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Core Expertise Toolkit</h4>
+              <form onSubmit={handleAddSkill} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type skill tag (e.g., Docker) and press Enter"
+                  className="w-full max-w-sm border rounded-lg p-2 bg-secondary/10 text-xs font-semibold"
+                  value={skillInput}
+                  onChange={e => setSkillInput(e.target.value)}
+                />
+                <button type="submit" className="px-4 py-2 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 font-bold text-xs">Add Tag</button>
+              </form>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {profile?.skills?.map((tag: string) => (
+                  <span key={tag} className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary font-bold text-xs px-3 py-1 rounded-xl">
+                    {tag}
+                    <button type="button" onClick={() => handleRemoveSkill(tag)} className="text-rose-500 hover:text-rose-700 ml-1 font-bold text-sm leading-none">×</button>
+                  </span>
+                ))}
               </div>
+            </div>
 
+            {/* Certs, Seminars and Responsibilities */}
+            <div className="space-y-4 border-t pt-5 grid grid-cols-1 gap-4 text-xs font-semibold">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-black text-slate-500">Seminars / Trainings / Workshops Attended Details</label>
-                <textarea rows={5} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Provide seminar summaries or training workshops details..." value={seminarsText} onChange={e => setSeminarsText(e.target.value)} />
+                <label className="text-[10px] uppercase font-black text-slate-500">Certifications & Assessments (Comma split)</label>
+                <textarea rows={2} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="e.g. AWS Solutions Architect, Oracle Java Associate" value={certificationsText} onChange={e => setCertificationsText(e.target.value)} />
               </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={handleSaveSkillsDevelopment}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save Seminars & Workshops
-                </button>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Positions of Responsibility (Comma split)</label>
+                <textarea rows={2} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="e.g. College Club Lead, Event Organizer" value={responsibilityText} onChange={e => setResponsibilityText(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-black text-slate-500">Seminars / Trainings / Workshops Attended</label>
+                <textarea rows={3} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Provide seminar summaries or training workshops details..." value={seminarsText} onChange={e => setSeminarsText(e.target.value)} />
               </div>
             </div>
-          )}
 
-          {/* Section 11: Certifications */}
-          {activeTab === 'certifications' && (
-            <div className="space-y-6 animate-fade-in text-xs font-semibold">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Certifications / Skills</h3>
-                <p className="text-xxs text-muted-foreground">Manage your core expertise skills and certification credentials.</p>
+            <div className="flex justify-end pt-4 border-t">
+              <button
+                type="button"
+                onClick={handleSaveSkillsDevelopment}
+                className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
+              >
+                Save Skills & Development
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Documents & Policy */}
+        {activeTab === 'documents_policy' && (
+          <div className="space-y-6">
+            <div className="border-b pb-3">
+              <h3 className="text-base font-extrabold">Documents & Outplacement Policy</h3>
+              <p className="text-xxs text-muted-foreground">Manage profile attachments, references, and review college code of conduct guidelines.</p>
+            </div>
+
+            {/* Resume Upload */}
+            <div className="p-6 rounded-2xl border border-dashed bg-secondary/10 flex flex-col items-center justify-center text-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-primary/5 text-primary flex items-center justify-center">
+                <FileText className="h-6 w-6" />
               </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold">Upload Your Vetted PDF Resume</p>
+                <p className="text-[10px] text-muted-foreground">PDF file formats only, maximum file size 3MB.</p>
+              </div>
+              <label className="px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs uppercase rounded-xl cursor-pointer flex items-center gap-1.5 transition-all shadow-sm">
+                {uploadingResume ? 'Uploading...' : 'Upload File'}
+                <input type="file" accept=".pdf" className="hidden" disabled={uploadingResume} onChange={handleUploadResumeFile} />
+              </label>
+            </div>
 
-              {/* Skills tag deck */}
-              <div className="space-y-3 pb-5 border-b">
-                <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Core Expertise Toolkit</h4>
-                <form onSubmit={handleAddSkill} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type skill tag (e.g., Docker) and press Enter"
-                    className="w-full max-w-sm border rounded-lg p-2 bg-secondary/10 text-xs font-semibold"
-                    value={skillInput}
-                    onChange={e => setSkillInput(e.target.value)}
-                  />
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 font-bold text-xs">Add Tag</button>
-                </form>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {profile?.skills?.map((tag: string) => (
-                    <span key={tag} className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary font-bold text-xs px-3 py-1 rounded-xl">
-                      {tag}
-                      <button type="button" onClick={() => handleRemoveSkill(tag)} className="text-rose-500 hover:text-rose-700 ml-1 font-bold text-sm leading-none">×</button>
-                    </span>
+            {/* Profile resumes list */}
+            {profile?.resumes?.length > 0 && (
+              <div className="space-y-3 pt-3 border-t">
+                <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500">Uploaded Resume Versions</h4>
+                <div className="divide-y rounded-xl border overflow-hidden">
+                  {profile.resumes.map((res: any, idx: number) => (
+                    <div key={idx} className="p-3 flex items-center justify-between bg-card text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4.5 w-4.5 text-primary" />
+                        <div>
+                          <p className="font-bold text-foreground">Version {idx + 1}</p>
+                          <p className="text-[9px] text-muted-foreground">Uploaded: {new Date(res.uploadedAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <a href={`http://localhost:5000${res.url}`} target="_blank" rel="noreferrer" className="text-[10px] text-accent hover:underline">Download</a>
+                    </div>
                   ))}
                 </div>
               </div>
+            )}
 
-              <div className="space-y-1 pt-4">
-                <label className="text-[10px] uppercase font-black text-slate-500">Certifications & Assessments (Comma split)</label>
-                <textarea rows={4} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="e.g. AWS Solutions Architect, Oracle Java Associate" value={certificationsText} onChange={e => setCertificationsText(e.target.value)} />
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={handleSaveSkillsDevelopment}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save Certifications & Skills
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Section 12: Positions of Responsibility */}
-          {activeTab === 'responsibility' && (
-            <div className="space-y-6 animate-fade-in text-xs font-semibold">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Positions of Responsibility</h3>
-                <p className="text-xxs text-muted-foreground">List extra-curricular leadership positions and roles.</p>
-              </div>
-
+            {/* References & Other Details */}
+            <div className="space-y-4 border-t pt-5 text-xs font-semibold">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-black text-slate-500">Positions of Responsibility (Comma split)</label>
-                <textarea rows={4} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="e.g. College Club Lead, Event Organizer" value={responsibilityText} onChange={e => setResponsibilityText(e.target.value)} />
+                <label className="text-[10px] uppercase font-black text-slate-500">Professional References</label>
+                <textarea rows={2} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Provide contact info of academic or professional references..." value={referencesText} onChange={e => setReferencesText(e.target.value)} />
               </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={handleSaveSkillsDevelopment}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save Positions of Responsibility
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Section 13: Other Details */}
-          {activeTab === 'other_details' && (
-            <div className="space-y-6 animate-fade-in text-xs font-semibold">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Other Details</h3>
-                <p className="text-xxs text-muted-foreground">Add any other details or custom descriptions for your profile resume.</p>
-              </div>
-
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-black text-slate-500">Other Details / Additional Notes</label>
-                <textarea rows={5} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Add other details..." value={otherDetailsText} onChange={e => setOtherDetailsText(e.target.value)} />
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => handleSaveDocumentsSection('other')}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save Other Details
-                </button>
+                <textarea rows={2} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Add other details..." value={otherDetailsText} onChange={e => setOtherDetailsText(e.target.value)} />
               </div>
             </div>
-          )}
 
-          {/* Section 14: References */}
-          {activeTab === 'references' && (
-            <div className="space-y-6 animate-fade-in text-xs font-semibold">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Professional References</h3>
-                <p className="text-xxs text-muted-foreground">Enter contact references to vet profile credentials.</p>
+            {/* Read-only policy agreement panel and checkbox */}
+            <div className="p-5 border rounded-2xl bg-secondary/15 text-xs space-y-3">
+              <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-accent" />
+                University Placement Policy Acknowledgment
+              </h4>
+              <div className="p-3 bg-card border rounded-xl text-xxs leading-relaxed text-muted-foreground max-h-32 overflow-y-auto font-medium">
+                <p>1. Candidates must maintain a minimum 75% attendance record during corporate presentation drives.</p>
+                <p className="mt-1.5">2. Responding to assigned interviews or assessments is mandatory once profile is verified by placement cell.</p>
+                <p className="mt-1.5">3. Withdrawing application after shortlist release might suspend placement eligibility privileges.</p>
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-black text-slate-500">Professional References Details</label>
-                <textarea rows={5} className="w-full border rounded-lg p-2 bg-secondary/10 font-medium resize-none" placeholder="Provide contact info of academic or professional references..." value={referencesText} onChange={e => setReferencesText(e.target.value)} />
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => handleSaveDocumentsSection('references')}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Save References
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Section 15: Placement Policy */}
-          {activeTab === 'placement_policy' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="border-b pb-3">
-                <h3 className="text-base font-extrabold">Placement Policy</h3>
-                <p className="text-xxs text-muted-foreground">Review and agree to the institutional corporate hiring policy.</p>
-              </div>
-
-              {/* Read-only policy agreement panel and checkbox */}
-              <div className="p-5 border rounded-2xl bg-secondary/15 text-xs space-y-3">
-                <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <AlertCircle className="h-4 w-4 text-accent" />
-                  University Placement Policy Acknowledgment
-                </h4>
-                <div className="p-3 bg-card border rounded-xl text-xxs leading-relaxed text-muted-foreground max-h-32 overflow-y-auto font-medium">
-                  <p>1. Candidates must maintain a minimum 75% attendance record during corporate presentation drives.</p>
-                  <p className="mt-1.5">2. Responding to assigned interviews or assessments is mandatory once profile is verified by placement cell.</p>
-                  <p className="mt-1.5">3. Withdrawing application after shortlist release might suspend placement eligibility privileges.</p>
-                </div>
-                <div className="flex items-start gap-2.5 pt-2">
-                  <input
-                    id="policyCheck"
-                    type="checkbox"
-                    className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary/10 mt-0.5 cursor-pointer"
-                    checked={policyAgreed}
-                    onChange={e => setPolicyAgreed(e.target.checked)}
-                  />
-                  <label htmlFor="policyCheck" className="text-xxs leading-normal font-semibold text-slate-600 dark:text-slate-350 cursor-pointer">
-                    I have read and agree to follow all code of conduct and policy logs listed above.
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => handleSaveDocumentsSection('policy')}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-md transition-colors"
-                >
-                  Agree & Save Policy
-                </button>
+              <div className="flex items-start gap-2.5 pt-2">
+                <input
+                  id="policyCheck"
+                  type="checkbox"
+                  className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary/10 mt-0.5 cursor-pointer"
+                  checked={policyAgreed}
+                  onChange={e => setPolicyAgreed(e.target.checked)}
+                />
+                <label htmlFor="policyCheck" className="text-xxs leading-normal font-semibold text-slate-600 dark:text-slate-350 cursor-pointer">
+                  I have read and agree to follow all code of conduct and policy logs listed above.
+                </label>
               </div>
             </div>
-          )}
 
-        </div>
+            <div className="flex justify-end pt-4 border-t">
+              <button
+                type="button"
+                onClick={handleSaveDocumentsPolicy}
+                className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-bold uppercase rounded-xl shadow-sm transition-colors"
+              >
+                Save Documents & Policy
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* CRUD dialogs */}
