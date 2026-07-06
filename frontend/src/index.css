@@ -4,65 +4,110 @@
 
 @layer base {
   :root {
-    --background: 210 50% 98%;
-    --foreground: 206 92% 10%;
+    --background: 32 100% 97.5%;   /* #FFF9F2 - Soft cream background */
+    --foreground: 0 0% 10%;        /* #1A1A1A - Text primary */
 
-    --card: 0 0% 100%;
-    --card-foreground: 206 92% 10%;
+    --card: 0 0% 100%;             /* White surfaces */
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 206 92% 10%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 206 92% 35%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 180 42% 30%;        /* #2D6E6E - Deep teal */
+    --primary-foreground: 32 100% 97.5%;
 
-    --secondary: 205 30% 92%;
-    --secondary-foreground: 206 92% 15%;
+    --secondary: 37 28% 88%;       /* #E8E1D6 - Borders/Dividers level */
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 205 20% 95%;
-    --muted-foreground: 206 15% 45%;
+    --muted: 37 28% 94%;           /* Softer cream beige */
+    --muted-foreground: 220 9% 46%;/* #6B7280 - Text secondary */
 
-    --accent: 18 85% 55%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 6 100% 68%;          /* #FF6B5B - Warm coral */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 205 25% 88%;
-    --input: 205 25% 88%;
-    --ring: 206 92% 35%;
+    --border: 37 28% 88%;          /* #E8E1D6 */
+    --input: 37 28% 88%;
+    --ring: 180 42% 30%;
 
     --radius: 0.75rem;
+
+    /* Slate mapping for light mode (Tailwind defaults) */
+    --slate-50: 32 100% 97.5%;
+    --slate-100: 37 28% 88%;
+    --slate-200: 37 28% 88%;
+    --slate-300: 37 28% 80%;
+    --slate-350: 37 20% 70%;
+    --slate-400: 220 9% 46%;
+    --slate-450: 220 9% 40%;
+    --slate-500: 220 9% 35%;
+    --slate-600: 220 9% 30%;
+    --slate-700: 0 0% 20%;
+    --slate-750: 0 0% 15%;
+    --slate-800: 0 0% 10%;
+    --slate-850: 0 0% 10%;
+    --slate-900: 0 0% 10%;
+    --slate-950: 0 0% 10%;
+
+    /* Dynamic Shadows */
+    --shadow-premium: 0 8px 30px rgba(0, 0, 0, 0.04);
+    --shadow-premium-hover: 0 20px 40px rgba(0, 0, 0, 0.08);
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   }
 
   .dark {
-    --background: 222.2 47% 7%;
-    --foreground: 210 40% 98%;
+    /* Dark Mode variables mapped from the Design Guide */
+    --background: 195 18% 9%;      /* #12181A - Near-black background */
+    --foreground: 42 38% 94%;     /* #F5F1E8 - Warm off-white primary text */
 
-    --card: 222.2 47% 9%;
-    --card-foreground: 210 40% 98%;
+    --card: 192 15% 13%;          /* #1C2426 - Surface/Cards background */
+    --card-foreground: 42 38% 94%;
 
-    --popover: 222.2 47% 9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 192 15% 13%;       /* #1C2426 */
+    --popover-foreground: 42 38% 94%;
 
-    --primary: 200 95% 45%;
-    --primary-foreground: 222.2 47% 7%;
+    --primary: 180 36% 48%;       /* #4FA8A8 - Brightened Teal */
+    --primary-foreground: 195 18% 9%;
 
-    --secondary: 217.2 32.6% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 190 13% 19%;     /* #2A3436 - Borders/Dividers level */
+    --secondary-foreground: 42 38% 94%;
 
-    --muted: 217.2 32.6% 12%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 192 15% 13%;         /* #1C2426 */
+    --muted-foreground: 192 6% 65%; /* #A0A8AA - Text secondary */
 
-    --accent: 18 90% 62%;
-    --accent-foreground: 222.2 47% 7%;
+    --accent: 7 100% 74%;         /* #FF8A7A - Softened Coral */
+    --accent-foreground: 195 18% 9%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 16%;
-    --input: 217.2 32.6% 16%;
-    --ring: 200 95% 45%;
+    --border: 190 13% 19%;        /* #2A3436 - Borders/Dividers */
+    --input: 190 13% 19%;
+    --ring: 180 36% 48%;
+
+    /* Slate overrides based on New Neutrals in dark mode */
+    --slate-50: 42 38% 94%;
+    --slate-100: 42 38% 90%;
+    --slate-200: 42 38% 90%;
+    --slate-300: 192 6% 75%;
+    --slate-350: 192 6% 70%;
+    --slate-400: 192 6% 65%;
+    --slate-450: 192 6% 60%;
+    --slate-500: 192 6% 55%;
+    --slate-600: 192 6% 50%;
+    --slate-700: 190 13% 19%;     /* Surface 4 / Overlay #2A3436 */
+    --slate-750: 190 13% 19%;     /* Surface 4 / Overlay #2A3436 */
+    --slate-800: 192 15% 13%;     /* Surface 3 / Elevated #1C2426 */
+    --slate-850: 192 15% 13%;     /* Surface 3 / Elevated #1C2426 */
+    --slate-900: 192 15% 13%;     /* Surface 2 / Raised #1C2426 */
+    --slate-950: 195 18% 9%;      /* Surface 1 / Base Background #12181A */
+
+    /* Premium shadows for dark mode elevation */
+    --shadow-premium: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --shadow-premium-hover: 0 20px 40px rgba(0, 0, 0, 0.5);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
   }
 }
 
@@ -74,8 +119,13 @@
     @apply bg-background text-foreground font-sans antialiased selection:bg-accent/20 selection:text-foreground;
   }
   /* Smooth theme toggle transition */
-  body, header, aside, main, div, p, span, h1, h2, h3, h4, h5, h6, button, input, select, textarea, a {
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  body, header, aside, main, div, p, span, h1, h2, h3, h4, h5, h6, button, input, select, textarea, a, svg, path {
+    transition: background-color 350ms cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 350ms cubic-bezier(0.4, 0, 0.2, 1), 
+                color 350ms cubic-bezier(0.4, 0, 0.2, 1), 
+                fill 350ms cubic-bezier(0.4, 0, 0.2, 1), 
+                stroke 350ms cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 350ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   /* Global Dropdown styling */
   select {
