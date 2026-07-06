@@ -14,7 +14,8 @@ const experienceSchema = z.object({
   current: z.boolean(),
   description: z.string().optional().or(z.literal('')),
   cgpa: z.string().optional().or(z.literal('')),
-  marksheetUrl: z.string().optional().or(z.literal(''))
+  marksheetUrl: z.string().optional().or(z.literal('')),
+  experienceType: z.enum(['job', 'internship'])
 });
 
 type ExperienceFields = z.infer<typeof experienceSchema>;
@@ -47,7 +48,8 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
     defaultValues: {
       current: false,
       cgpa: '',
-      marksheetUrl: ''
+      marksheetUrl: '',
+      experienceType: 'job'
     }
   });
 
@@ -70,7 +72,8 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
         current: !!initialData.current,
         description: initialData.description || '',
         cgpa: initialData.cgpa || '',
-        marksheetUrl: initialData.marksheetUrl || ''
+        marksheetUrl: initialData.marksheetUrl || '',
+        experienceType: initialData.experienceType || 'job'
       });
     } else {
       reset({
@@ -82,7 +85,8 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
         current: false,
         description: '',
         cgpa: '',
-        marksheetUrl: ''
+        marksheetUrl: '',
+        experienceType: 'job'
       });
     }
     setDocError('');
@@ -130,6 +134,19 @@ export const ExperienceDialog: React.FC<ExperienceDialogProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Experience Type
+            </label>
+            <select
+              className="block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+              {...register('experienceType')}
+            >
+              <option value="job">Job / Employment</option>
+              <option value="internship">Internship</option>
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">

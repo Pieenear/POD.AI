@@ -34,6 +34,7 @@ export interface IExperience {
   description?: string;
   cgpa?: string;
   marksheetUrl?: string;
+  experienceType?: 'job' | 'internship';
 }
 
 export interface IProject {
@@ -160,7 +161,8 @@ const ExperienceSchema = new Schema<IExperience>({
   current: { type: Boolean, default: false },
   description: { type: String },
   cgpa: { type: String },
-  marksheetUrl: { type: String }
+  marksheetUrl: { type: String },
+  experienceType: { type: String, enum: ['job', 'internship'], default: 'job' }
 });
 
 const ProjectSchema = new Schema<IProject>({
