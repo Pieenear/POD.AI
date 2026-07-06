@@ -675,7 +675,7 @@ export const ResumeEditor: React.FC = () => {
           
           {/* Header Action Buttons for standard forms */}
           {activeTab !== 'preview' && (
-            <div className="absolute top-6 right-6 flex gap-2 no-print">
+            <div className="absolute top-6 right-6 flex gap-2 no-print z-20">
               <input 
                 type="file" 
                 ref={resumeInputRef} 
