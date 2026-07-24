@@ -16,10 +16,10 @@ if (!fs.existsSync(uploadDir)) {
 
 // Multer Storage config
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: any, file: any, cb: any) => {
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: any, file: any, cb: any) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, `doc-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ext !== '.pdf' && ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
       return cb(new Error('Only PDF, PNG, and JPG files are allowed') as any, false);

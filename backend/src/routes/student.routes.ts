@@ -21,20 +21,20 @@ if (!fs.existsSync(docUploadDir)) {
 
 // Multer Storage config
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: any, file: any, cb: any) => {
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: any, file: any, cb: any) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, `resume-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
 });
 
 const docStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: any, file: any, cb: any) => {
     cb(null, docUploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: any, file: any, cb: any) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, `doc-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
@@ -43,7 +43,7 @@ const docStorage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ext !== '.pdf') {
       return cb(new Error('Only PDF files are allowed') as any, false);
@@ -55,7 +55,7 @@ const upload = multer({
 const uploadDoc = multer({
   storage: docStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const allowed = ['.pdf', '.jpg', '.jpeg', '.png'];
     if (!allowed.includes(ext)) {
