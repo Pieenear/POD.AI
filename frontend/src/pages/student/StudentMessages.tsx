@@ -21,7 +21,7 @@ export const StudentMessages: React.FC = () => {
       unread: false,
       members: ['Cognizant HR', 'CSE Coordinate Staff'],
       messages: [
-        { sender: 'System Coordinator', role: 'CareerFlow Bot', body: 'Cognizant drive activated. Student resumes matching CSE eligibility criteria have been synced.', time: 'Yesterday, 9:00 AM' },
+        { sender: 'System Coordinator', role: 'CRUIT Bot', body: 'Cognizant drive activated. Student resumes matching CSE eligibility criteria have been synced.', time: 'Yesterday, 9:00 AM' },
         { sender: 'Cognizant HR', role: 'Hiring Recruiter', body: 'Welcome shortlisted candidates. Coding test keys will be released inside the Assessments portal soon. Please keep default resumes vetted.', time: 'Yesterday, 4:40 PM' }
       ]
     }

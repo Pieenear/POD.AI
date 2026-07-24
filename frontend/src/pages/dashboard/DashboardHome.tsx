@@ -412,7 +412,7 @@ export const DashboardHome: React.FC = () => {
               <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-black text-lg shadow-md shadow-primary/10">CF</div>
               <h2 className="text-xl font-black text-foreground tracking-tight">Complete Profile Setup</h2>
               <p className="text-xxs text-muted-foreground leading-normal">
-                Welcome to CareerFlow AI! Please enter your basic details to configure your placement console.
+                Welcome to CRUIT! Please enter your basic details to configure your placement console.
               </p>
             </div>
 

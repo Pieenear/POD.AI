@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
+import { Logo } from '../../components/shared/Logo';
 import { Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import api from '../../config/api';
 
@@ -116,9 +117,9 @@ export const Login: React.FC = () => {
             </div>
           ) : (
             <div className="text-left space-y-2">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-black text-lg shadow-md shadow-primary/10">CF</div>
-              <h2 className="text-2xl font-black text-foreground tracking-tight">Sign In</h2>
-              <p className="text-xs text-muted-foreground">Access your CareerFlow AI workspace.</p>
+              <Logo size="lg" />
+              <h2 className="text-2xl font-black text-foreground tracking-tight pt-2">Sign In</h2>
+              <p className="text-xs text-muted-foreground">Access your CRUIT workspace.</p>
             </div>
           )}
 
@@ -232,7 +233,7 @@ export const Login: React.FC = () => {
 
         {/* Minimal Footer */}
         <div className="text-center text-[10px] text-muted-foreground">
-          <span>CareerFlow AI Securify. Bank-grade 256-bit SSL encryption.</span>
+          <span>CRUIT Securify. Bank-grade 256-bit SSL encryption.</span>
         </div>
 
       </div>
@@ -244,8 +245,7 @@ export const Login: React.FC = () => {
         
         {/* Brand Header */}
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center font-black text-xxs">CF</div>
-          <span className="font-extrabold text-sm uppercase tracking-wider text-slate-300">CareerFlow AI Portal</span>
+          <Logo size="sm" subtitle="Portal" />
         </div>
 
         {/* Middle Testimonial */}

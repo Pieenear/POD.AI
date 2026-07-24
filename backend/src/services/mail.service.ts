@@ -44,9 +44,9 @@ class MailService {
     const url = `${env.CLIENT_URL}/verify-email?token=${token}`;
     const html = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-        <h2 style="color: #6366f1; margin-bottom: 20px; font-weight: 700; text-align: center;">Verify Your CareerFlow AI Account</h2>
+        <h2 style="color: #6366f1; margin-bottom: 20px; font-weight: 700; text-align: center;">Verify Your CRUIT Account</h2>
         <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hello ${name},</p>
-        <p style="font-size: 16px; color: #334155; line-height: 1.6;">Thank you for signing up for CareerFlow AI. Please click the button below to confirm your email and activate your account.</p>
+        <p style="font-size: 16px; color: #334155; line-height: 1.6;">Thank you for signing up for CRUIT. Please click the button below to confirm your email and activate your account.</p>
         <div style="text-align: center; margin: 35px 0;">
           <a href="${url}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);">Verify Email Address</a>
         </div>
@@ -54,10 +54,10 @@ class MailService {
           Or copy and paste this link into your browser: <br/>
           <a href="${url}" style="color: #6366f1; word-break: break-all;">${url}</a>
         </p>
-        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 30px;">If you didn't create a CareerFlow account, you can safely ignore this email.</p>
+        <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 30px;">If you didn't create a CRUIT account, you can safely ignore this email.</p>
       </div>
     `;
-    return this.sendMail(to, 'Verify Your CareerFlow AI Account', html);
+    return this.sendMail(to, 'Verify Your CRUIT Account', html);
   }
 
   public async sendPasswordResetEmail(to: string, name: string, token: string): Promise<boolean> {
@@ -66,7 +66,7 @@ class MailService {
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
         <h2 style="color: #6366f1; margin-bottom: 20px; font-weight: 700; text-align: center;">Reset Your Password</h2>
         <p style="font-size: 16px; color: #334155; line-height: 1.6;">Hello ${name},</p>
-        <p style="font-size: 16px; color: #334155; line-height: 1.6;">We received a request to reset the password for your CareerFlow AI account. Click the button below to choose a new password.</p>
+        <p style="font-size: 16px; color: #334155; line-height: 1.6;">We received a request to reset the password for your CRUIT account. Click the button below to choose a new password.</p>
         <div style="text-align: center; margin: 35px 0;">
           <a href="${url}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);">Reset Password</a>
         </div>
@@ -75,7 +75,7 @@ class MailService {
         </p>
       </div>
     `;
-    return this.sendMail(to, 'Reset Your CareerFlow AI Password', html);
+    return this.sendMail(to, 'Reset Your CRUIT Password', html);
   }
 }
 

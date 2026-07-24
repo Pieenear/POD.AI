@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000/api/v1',
+  baseURL: (import.meta.env.VITE_API_URL as string) || 'https://cruit-backend.onrender.com/api/v1',
   withCredentials: true, // required to send HttpOnly cookies
   headers: {
     'Content-Type': 'application/json'

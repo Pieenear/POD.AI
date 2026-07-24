@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
+import { Logo } from '../../components/shared/Logo';
 import { useAuth } from '../../context/AuthContext';
 import { 
   ArrowRight, 
@@ -62,13 +63,8 @@ export const Landing: React.FC = () => {
       {/* Navigation */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/70 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 font-extrabold text-xl tracking-tight text-foreground">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-black text-sm shadow-md shadow-primary/10">
-              CF
-            </div>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
-              Career<span className="text-primary font-black">Flow</span>
-            </span>
+          <Link to="/">
+            <Logo size="md" />
           </Link>
           
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground">
@@ -178,7 +174,7 @@ export const Landing: React.FC = () => {
       <section className="py-24 border-t bg-slate-500/5">
         <div className="container mx-auto px-6 max-w-5xl">
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-            <span className="text-xs uppercase font-extrabold tracking-wider text-accent bg-accent/10 px-3 py-1 rounded-full">Why CareerFlow</span>
+            <span className="text-xs uppercase font-extrabold tracking-wider text-accent bg-accent/10 px-3 py-1 rounded-full">Why CRUIT</span>
             <h2 className="text-3xl font-extrabold tracking-tight">Built to replace enterprise bloat</h2>
             <p className="text-muted-foreground">We skip the complex setups and per-student licensing markups. Simple pricing, light screens.</p>
           </div>
@@ -415,7 +411,7 @@ export const Landing: React.FC = () => {
               <span className="text-6xl text-primary/15 font-serif absolute -top-4 -left-2 leading-none">“</span>
               <blockquote className="space-y-4 relative">
                 <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium italic">
-                  CareerFlow completely digitized our placement operations. Instead of dealing with chaotic email lists, we now match, screen, and test students instantly. Recruiters love the speed, and we have live outcomes analytics.
+                  CRUIT completely digitized our placement operations. Instead of dealing with chaotic email lists, we now match, screen, and test students instantly. Recruiters love the speed, and we have live outcomes analytics.
                 </p>
                 <footer className="flex items-center gap-3 pt-4 border-t text-xxs">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center text-white font-extrabold">AT</div>
@@ -454,10 +450,7 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto px-6 max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="space-y-3">
-              <div className="flex items-center gap-3 font-extrabold text-sm text-white">
-                <div className="h-6 w-6 rounded bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-black text-xs">CF</div>
-                <span>CareerFlow</span>
-              </div>
+              <Logo size="sm" />
               <p className="text-slate-400 leading-relaxed max-w-xs">
                 Lightweight digital campus placement cell and career matching portal. Go live in days.
               </p>
@@ -480,7 +473,7 @@ export const Landing: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row justify-between text-slate-500 gap-4">
-            <span>© 2026 CareerFlow AI. All rights reserved.</span>
+            <span>© 2026 CRUIT. All rights reserved.</span>
             <div className="flex gap-4">
               <a href="#" className="hover:text-slate-400">LinkedIn</a>
               <a href="#" className="hover:text-slate-400">Twitter</a>

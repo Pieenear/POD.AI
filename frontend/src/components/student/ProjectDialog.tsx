@@ -100,7 +100,7 @@ export const ProjectDialog: React.FC<ProjectDialogProps> = ({
               className={`block w-full px-3 py-2.5 border rounded-lg bg-slate-50 dark:bg-slate-850/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-colors ${
                 errors.title ? 'border-rose-450' : 'border-slate-200 dark:border-slate-800'
               }`}
-              placeholder="e.g. CareerFlow Placement Platform"
+              placeholder="e.g. CRUIT Placement Platform"
               {...register('title')}
             />
             {errors.title && (

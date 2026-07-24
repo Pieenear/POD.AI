@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
+import { Logo } from './Logo';
 import { 
   LayoutDashboard, 
   Users, 
@@ -69,9 +70,8 @@ export const AdminLayout: React.FC = () => {
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             
-            <Link to="/officer" className="flex items-center gap-2.5 font-extrabold text-base tracking-tight text-foreground">
-              <div className="h-7 w-7 rounded bg-primary text-primary-foreground flex items-center justify-center font-black text-xs shadow-sm shadow-primary/10">CF</div>
-              <span className="hidden sm:inline">CareerFlow <span className="text-primary font-black">Officer</span></span>
+            <Link to="/officer">
+              <Logo size="sm" subtitle="Officer" />
             </Link>
           </div>
 

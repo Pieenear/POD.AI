@@ -18,7 +18,7 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undef
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
   defaultTheme = 'system',
-  storageKey = 'careerflow-ui-theme',
+  storageKey = 'cruit-ui-theme',
   ...props
 }) => {
   const [theme, setTheme] = useState<Theme>(

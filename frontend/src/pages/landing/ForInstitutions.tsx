@@ -25,11 +25,11 @@ export const ForInstitutions: React.FC = () => {
   const faqs = [
     {
       q: 'How long does it take to go live?',
-      a: 'Zenith and other major colleges went live in less than 3 days. Since CareerFlow AI is hosted on secure cloud systems, you do not need to install hardware or write configurations. Just import your student CSV to begin.'
+      a: 'Zenith and other major colleges went live in less than 3 days. Since CRUIT is hosted on secure cloud systems, you do not need to install hardware or write configurations. Just import your student CSV to begin.'
     },
     {
       q: 'Are there hidden per-student licensing fees?',
-      a: 'No. CareerFlow AI offers transparent, flat monthly tiers. You pay one clean rate regardless of how many students register or how many companies participate. We do not charge per-student taxations.'
+      a: 'No. CRUIT offers transparent, flat monthly tiers. You pay one clean rate regardless of how many students register or how many companies participate. We do not charge per-student taxations.'
     },
     {
       q: 'Do we need a dedicated IT operations team?',
@@ -305,8 +305,7 @@ export const ForInstitutions: React.FC = () => {
       <footer className="border-t py-12 bg-slate-900 text-slate-300 text-xxs">
         <div className="container mx-auto px-6 max-w-5xl flex flex-col md:flex-row items-center justify-between text-muted-foreground gap-4">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-black text-xs">CF</div>
-            <span>© 2026 CareerFlow AI. Vetted Platform. All rights reserved.</span>
+            <span>© 2026 CRUIT. Vetted Platform. All rights reserved.</span>
           </div>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white">Privacy Policy</a>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/shared/ThemeToggle';
+import { Logo } from '../../components/shared/Logo';
 import { JobCreateDialog } from '../../components/employer/JobCreateDialog';
 import { DriveCreateDialog } from '../../components/employer/DriveCreateDialog';
 import { InterviewSchedulerDialog } from '../../components/employer/InterviewSchedulerDialog';
@@ -269,8 +270,7 @@ export const EmployerDashboard: React.FC = () => {
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">CF</div>
-            <span className="font-bold text-base">CareerFlow AI <span className="text-muted-foreground text-xs font-normal">Recruiter Console</span></span>
+            <Logo size="sm" subtitle="Recruiter Console" />
           </div>
 
           <div className="flex items-center gap-4">

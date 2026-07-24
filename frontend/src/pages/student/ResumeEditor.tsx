@@ -1822,7 +1822,7 @@ export const ResumeEditor: React.FC = () => {
             <div className="space-y-6 animate-fade-in text-left">
               <div className="border-b pb-3 pr-40">
                 <h3 className="text-base font-extrabold">Placement Policy</h3>
-                <p className="text-xxs text-muted-foreground">Acknowledge agreement to CareerFlow rules and policies.</p>
+                <p className="text-xxs text-muted-foreground">Acknowledge agreement to CRUIT rules and policies.</p>
               </div>
 
               <div className="p-4 bg-secondary/15 rounded-xl border space-y-4 text-xs font-semibold leading-relaxed">
@@ -2077,7 +2077,7 @@ export const ResumeEditor: React.FC = () => {
                   </div>
 
                   <div className="pt-8 border-t border-dashed text-center text-muted-foreground text-[9px] uppercase tracking-wider font-extrabold">
-                    Generated via CareerFlow AI Printable PDF Stylesheet.
+                    Generated via CRUIT Printable PDF Stylesheet.
                   </div>
                 </div>
 
