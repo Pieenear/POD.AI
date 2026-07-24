@@ -17,11 +17,18 @@ import {
   Server
 } from 'lucide-react';
 
+const getDocUrl = (url: string) => {
+  const apiBase = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000/api/v1';
+  const serverBaseUrl = apiBase.replace(/\/api\/v1\/?$/, '');
+  return `${serverBaseUrl}${url}`;
+};
+
 export const OfficerDashboard: React.FC = () => {
   const { pathname } = useLocation();
 
   const [stats, setStats] = useState<any>(null);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [drives, setDrives] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [assessments, setAssessments] = useState<any[]>([]);
@@ -76,6 +83,9 @@ export const OfficerDashboard: React.FC = () => {
 
       const compRes = await api.get('/officer/companies');
       setCompanies(compRes.data.data.companies || []);
+
+      const drivesRes = await api.get('/officer/drives');
+      setDrives(drivesRes.data.data.drives || []);
 
       const studRes = await api.get('/officer/students');
       setStudents(studRes.data.data.students || []);
@@ -596,7 +606,7 @@ export const OfficerDashboard: React.FC = () => {
                         <td className="px-6 py-4">
                           {c.verificationDocs && c.verificationDocs.length > 0 ? (
                             <a 
-                              href={`http://localhost:5000${c.verificationDocs[0].url}`} 
+                              href={getDocUrl(c.verificationDocs[0].url)} 
                               target="_blank" 
                               rel="noreferrer"
                               className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
@@ -630,12 +640,56 @@ export const OfficerDashboard: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="p-12 border border-dashed rounded-2xl text-center text-muted-foreground space-y-4">
-              <Building2 className="h-8 w-8 text-slate-400 mx-auto" />
-              <div className="space-y-1">
-                <p className="text-xs font-bold">New Placement Drive Manager</p>
-                <p className="text-[10px] text-muted-foreground max-w-sm mx-auto">Invite companies to submit active job parameters or register direct drives here.</p>
-              </div>
+            <div className="bg-card border rounded-2xl shadow-sm overflow-hidden text-xs font-semibold text-left">
+              {drives.length > 0 ? (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b bg-secondary/15 text-slate-500 text-[10px] uppercase font-black tracking-wider">
+                      <th className="px-6 py-3.5">Company Name</th>
+                      <th className="px-6 py-3.5">Job Role</th>
+                      <th className="px-6 py-3.5">Drive Date</th>
+                      <th className="px-6 py-3.5">Selection Rounds</th>
+                      <th className="px-6 py-3.5 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {drives.map((d) => (
+                      <tr key={d._id} className="hover:bg-secondary/20 transition-colors">
+                        <td className="px-6 py-4 font-bold text-foreground">{d.companyId?.name || 'Company'}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{d.jobId?.title || 'N/A'}</td>
+                        <td className="px-6 py-4 text-foreground">{new Date(d.driveDate).toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-muted-foreground font-medium">
+                          {d.rounds && d.rounds.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {d.rounds.map((round: any, idx: number) => (
+                                <span key={idx} className="bg-secondary px-2 py-0.5 rounded text-[10px] font-bold text-muted-foreground border">
+                                  {round.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            'N/A'
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${
+                            d.status === 'scheduled' ? 'bg-indigo-50 border-indigo-250 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900 dark:text-indigo-400' :
+                            d.status === 'ongoing' ? 'bg-amber-50 border-amber-250 text-amber-700 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-400' :
+                            d.status === 'completed' ? 'bg-emerald-50 border-emerald-250 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-400' :
+                            'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-800'
+                          }`}>
+                            {d.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  No campus placement drives scheduled yet.
+                </div>
+              )}
             </div>
           )}
         </div>

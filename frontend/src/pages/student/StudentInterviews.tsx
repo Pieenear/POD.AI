@@ -42,8 +42,8 @@ export const StudentInterviews: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-semibold">
         {interviews.length > 0 ? (
           interviews.map((slot) => {
-            const dateStr = slot.scheduledDate ? new Date(slot.scheduledDate).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) : 'Unscheduled';
-            const timeStr = slot.scheduledDate ? new Date(slot.scheduledDate).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+            const dateStr = slot.date ? new Date(slot.date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) : 'Unscheduled';
+            const timeStr = slot.date ? new Date(slot.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
             return (
               <div key={slot._id} className="bg-card border p-5 rounded-2xl flex flex-col justify-between hover:border-slate-350 transition-colors shadow-xxs gap-4">
                 <div className="space-y-3">
@@ -72,10 +72,19 @@ export const StudentInterviews: React.FC = () => {
                       <Clock className="h-4 w-4 text-slate-400" />
                       <span>Time: <span className="text-foreground">{timeStr}</span></span>
                     </div>
-                    {slot.meetLink && (
+                    {slot.linkOrLocation && (
                       <div className="flex items-center gap-2 border-t border-dashed pt-2">
-                        <Video className="h-4 w-4 text-primary" />
-                        <a href={slot.meetLink} target="_blank" rel="noreferrer" className="text-primary hover:underline">Join Virtual Meeting</a>
+                        {slot.type === 'online' ? (
+                          <>
+                            <Video className="h-4 w-4 text-primary" />
+                            <a href={slot.linkOrLocation.startsWith('http') ? slot.linkOrLocation : `https://${slot.linkOrLocation}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Join Virtual Meeting</a>
+                          </>
+                        ) : (
+                          <>
+                            <MessageSquare className="h-4 w-4 text-slate-400" />
+                            <span>Location: <span className="text-foreground">{slot.linkOrLocation}</span></span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

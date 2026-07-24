@@ -77,9 +77,12 @@ router.post('/resume/ai-score', StudentController.triggerAiReview);
 router.get('/stats', StudentController.getStats);
 
 router.get('/jobs', StudentController.getJobsList);
+router.get('/drives', StudentController.getDrivesList);
 router.get('/applications', StudentController.getApplicationsList);
 router.post('/applications', StudentController.submitApplication);
 router.get('/interviews', StudentController.getInterviewsList);
 router.get('/notices', StudentController.getNoticesList);
+router.get('/offers', StudentController.getOffersList);
+router.post('/offers/:id/respond', StudentController.respondToOffer);
 
 export default router;

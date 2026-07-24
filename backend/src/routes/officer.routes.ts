@@ -23,6 +23,8 @@ router.delete('/notices/:id', OfficerController.deleteNotice);
 router.get('/rules', OfficerController.getRules);
 router.put('/rules', OfficerController.updateRules);
 
+router.get('/drives', OfficerController.getDrivesList);
+
 // Admin-only user management routes
 router.get('/users', requireRoles(UserRole.COLLEGE_ADMIN), OfficerController.getUsersList);
 router.put('/users/:id/role', requireRoles(UserRole.COLLEGE_ADMIN), OfficerController.updateUserRole);

@@ -36,6 +36,7 @@ export const CandidateDetailsDialog: React.FC<CandidateDetailsDialogProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'offered':
+      case 'accepted':
         return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-250';
       case 'rejected':
         return 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-450 border-rose-250';

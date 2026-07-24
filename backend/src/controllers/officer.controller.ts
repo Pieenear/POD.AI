@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Company } from '../models/company.model';
 import { Job } from '../models/job.model';
+import { CampusDrive } from '../models/drive.model';
 import { User, UserRole } from '../models/user.model';
 import { StudentProfile } from '../models/student.model';
 import { Notice } from '../models/notice.model';
@@ -368,6 +369,29 @@ export class OfficerController {
       res.status(200).json({
         success: true,
         message: 'User account permanently removed from system.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Retrieves all scheduled campus drives for the institution.
+   */
+  public static async getDrivesList(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const drives = await CampusDrive.find()
+        .populate('companyId', 'name logoUrl description website location isVerified')
+        .populate('jobId')
+        .sort({ driveDate: -1 });
+
+      res.status(200).json({
+        success: true,
+        data: { drives }
       });
     } catch (error) {
       next(error);

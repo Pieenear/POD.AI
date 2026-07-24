@@ -10,10 +10,25 @@ const educationSchema = z.object({
   degree: z.string().min(1, 'Degree is required'),
   fieldOfStudy: z.string().optional(),
   startYear: z.string().optional(),
-  endYear: z.string().min(1, 'Year is required'),
+  endYear: z.string().optional(),
   current: z.boolean(),
   grade: z.string().optional().or(z.literal('')),
   marksheetUrl: z.string().optional().or(z.literal(''))
+}).superRefine((data, ctx) => {
+  if (!data.current && (!data.endYear || data.endYear.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Year is required',
+      path: ['endYear']
+    });
+  }
+  if (data.degree === 'Degree (UG/PG)' && (!data.startYear || data.startYear.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Start year is required',
+      path: ['startYear']
+    });
+  }
 });
 
 type EducationFields = z.infer<typeof educationSchema>;
@@ -204,8 +219,8 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
       institution: 'MIT School of Computing',
       degree: data.degree,
       fieldOfStudy: selectedDegree === 'Degree (UG/PG)' ? data.fieldOfStudy || 'Computer Science' : (selectedDegree === 'Secondary (10th)' ? 'Secondary Education' : 'Higher Secondary Education'),
-      startDate: startDateStr,
-      endDate: data.current ? '' : endDateStr,
+      startDate: startDateStr || undefined,
+      endDate: data.current ? undefined : (endDateStr || undefined),
       current: data.current,
       grade: selectedDegree === 'Degree (UG/PG)' && aggregateCgpa !== undefined ? String(aggregateCgpa) : data.grade,
       marksheetUrl: data.marksheetUrl,
@@ -325,6 +340,9 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
                         <option key={yr} value={yr}>{yr}</option>
                       ))}
                     </select>
+                    {errors.startYear && (
+                      <p className="text-xxs text-rose-500 font-bold">{errors.startYear.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -343,7 +361,7 @@ export const EducationDialog: React.FC<EducationDialogProps> = ({
                         <option key={yr} value={yr}>{yr}</option>
                       ))}
                     </select>
-                    {errors.endYear && !isCurrent && (
+                    {errors.endYear && (
                       <p className="text-xxs text-rose-500 font-bold">{errors.endYear.message}</p>
                     )}
                   </div>

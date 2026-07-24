@@ -4,6 +4,7 @@ import { StudentProfile } from '../models/student.model';
 import { AiService } from '../services/ai.service';
 import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
 import { Job } from '../models/job.model';
+import { CampusDrive } from '../models/drive.model';
 import { Application } from '../models/application.model';
 import { Interview } from '../models/interview.model';
 import { Notice } from '../models/notice.model';
@@ -371,13 +372,15 @@ export class StudentController {
       const profile = await StudentProfile.findOne({ userId: req.user.userId });
       const jobs = await Job.find({ isActive: true }).populate('companyId', 'name logoUrl description website location').sort({ createdAt: -1 });
 
+      const profileIncomplete = !profile || profile.education.length === 0 || !profile.education[0].grade || !profile.education[0].fieldOfStudy;
+
       const evaluatedJobs = jobs.map(job => {
         let isEligible = true;
         let ineligibleReason = '';
 
-        if (profile) {
-          const cgpa = profile.education?.[0]?.grade ? parseFloat(profile.education[0].grade) || 0 : 0;
-          const branch = profile.education?.[0]?.fieldOfStudy || '';
+        if (!profileIncomplete && profile) {
+          const cgpa = profile.education[0].grade ? parseFloat(profile.education[0].grade) || 0 : 0;
+          const branch = profile.education[0].fieldOfStudy || '';
 
           // 1. GPA Eligibility Check
           if (job.eligibility?.minCgpa > 0 && cgpa < job.eligibility.minCgpa) {
@@ -387,7 +390,7 @@ export class StudentController {
 
           // 2. Branch Eligibility Check
           const allowedBranches = job.eligibility?.allowedBranches || [];
-          if (allowedBranches.length > 0 && !allowedBranches.some(b => branch.toLowerCase().includes(b.toLowerCase()))) {
+          if (allowedBranches.length > 0 && !allowedBranches.some(b => branch.trim().toLowerCase().includes((b || '').trim().toLowerCase()))) {
             isEligible = false;
             ineligibleReason = `Branch restricted. Allowed: ${allowedBranches.join(', ')}. Your branch: ${branch || 'N/A'}`;
           }
@@ -399,13 +402,82 @@ export class StudentController {
         return {
           ...job.toObject(),
           isEligible,
-          ineligibleReason
+          ineligibleReason,
+          profileIncomplete
         };
-      }).filter(job => job.isEligible);
+      });
 
       res.status(200).json({
         success: true,
         data: { jobs: evaluatedJobs }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Lists scheduled campus placement drives with eligibility indicators.
+   */
+  public static async getDrivesList(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      // Retrieve student profile to evaluate GPAs and majors
+      const profile = await StudentProfile.findOne({ userId: req.user.userId });
+      
+      // Fetch active drives and populate company and job information
+      const drives = await CampusDrive.find()
+        .populate('companyId', 'name logoUrl description website location')
+        .populate('jobId')
+        .sort({ driveDate: 1 });
+
+      const profileIncomplete = !profile || profile.education.length === 0 || !profile.education[0].grade || !profile.education[0].fieldOfStudy;
+
+      const evaluatedDrives = drives.map(drive => {
+        let isEligible = true;
+        let ineligibleReason = '';
+        const job = drive.jobId as any;
+
+        if (job) {
+          if (!profileIncomplete && profile) {
+            const cgpa = profile.education[0].grade ? parseFloat(profile.education[0].grade) || 0 : 0;
+            const branch = profile.education[0].fieldOfStudy || '';
+
+            // 1. GPA Eligibility Check
+            if (job.eligibility?.minCgpa > 0 && cgpa < job.eligibility.minCgpa) {
+              isEligible = false;
+              ineligibleReason = `Drive requires CGPA ≥ ${job.eligibility.minCgpa}. Your CGPA is ${cgpa.toFixed(2)}.`;
+            }
+
+            // 2. Branch Eligibility Check
+            const allowedBranches = job.eligibility?.allowedBranches || [];
+            if (allowedBranches.length > 0 && !allowedBranches.some(b => branch.trim().toLowerCase().includes((b || '').trim().toLowerCase()))) {
+              isEligible = false;
+              ineligibleReason = `Branch restricted. Allowed: ${allowedBranches.join(', ')}. Your branch: ${branch || 'N/A'}`;
+            }
+          } else {
+            isEligible = false;
+            ineligibleReason = 'Please complete your student profile setup to check eligibility.';
+          }
+        } else {
+          isEligible = false;
+          ineligibleReason = 'Linked job posting details are unavailable.';
+        }
+
+        return {
+          ...drive.toObject(),
+          isEligible,
+          ineligibleReason,
+          profileIncomplete
+        };
+      });
+
+      res.status(200).json({
+        success: true,
+        data: { drives: evaluatedDrives }
       });
     } catch (error) {
       next(error);
@@ -450,7 +522,7 @@ export class StudentController {
       }
 
       const allowedBranches = job.eligibility?.allowedBranches || [];
-      if (allowedBranches.length > 0 && !allowedBranches.some(b => branch.toLowerCase().includes(b.toLowerCase()))) {
+      if (allowedBranches.length > 0 && !allowedBranches.some(b => branch.trim().toLowerCase().includes((b || '').trim().toLowerCase()))) {
         throw new BadRequestError(`Your branch (${branch}) is not eligible for this role.`);
       }
 
@@ -645,6 +717,88 @@ export class StudentController {
             branchMetrics: branchRatios
           }
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Lists job offers released for this student (applications with status 'offered', 'rejected' (if rejected), or 'accepted').
+   */
+  public static async getOffersList(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+
+      const offers = await Application.find({ studentId: req.user.userId, status: { $in: ['offered', 'rejected'] } })
+        .populate({
+          path: 'jobId',
+          populate: { path: 'companyId', select: 'name logoUrl description website location' }
+        })
+        .sort({ updatedAt: -1 });
+
+      const mappedOffers = offers.map(app => {
+        const obj = app.toObject();
+        const accepted = app.timeline.some(t => t.comments && t.comments.includes('Offer ACCEPTED'));
+        if (accepted) {
+          obj.status = 'accepted';
+        } else if (app.status === 'offered') {
+          obj.status = 'pending';
+        }
+        return obj;
+      });
+
+      res.status(200).json({
+        success: true,
+        data: { offers: mappedOffers }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Responds to an offer (accept or reject).
+   */
+  public static async respondToOffer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+      const { id } = req.params;
+      const { status } = req.body; // 'accepted' | 'rejected'
+
+      if (!status || (status !== 'accepted' && status !== 'rejected')) {
+        throw new BadRequestError('Valid status response is required.');
+      }
+
+      const application = await Application.findOne({ _id: id, studentId: req.user.userId });
+      if (!application) {
+        throw new NotFoundError('Offer not found.');
+      }
+
+      if (status === 'accepted') {
+        application.timeline.push({
+          status: 'offered',
+          updatedAt: new Date(),
+          comments: 'Offer ACCEPTED by candidate'
+        });
+      } else if (status === 'rejected') {
+        application.status = 'rejected';
+        application.timeline.push({
+          status: 'rejected',
+          updatedAt: new Date(),
+          comments: 'Offer REJECTED by candidate'
+        });
+      }
+
+      await application.save();
+
+      res.status(200).json({
+        success: true,
+        message: `Offer ${status} successfully.`
       });
     } catch (error) {
       next(error);

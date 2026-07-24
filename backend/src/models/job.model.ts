@@ -25,6 +25,15 @@ export interface IJob {
 
 export interface IJobDocument extends IJob, Document {}
 
+export const ALLOWED_BRANCHES = [
+  "Information Technology",
+  "Computer Science",
+  "Electronics & Telecommunication",
+  "Mechanical Engineering",
+  "Civil Engineering",
+  "Business Administration"
+];
+
 const EligibilitySchema = new Schema<IEligibility>({
   minCgpa: {
     type: Number,
@@ -32,7 +41,17 @@ const EligibilitySchema = new Schema<IEligibility>({
   },
   allowedBranches: [{
     type: String,
-    trim: true
+    trim: true,
+    validate: {
+      validator: function(this: any, val: string) {
+        const doc = this.ownerDocument ? this.ownerDocument() : this;
+        if (doc && !doc.isNew && !doc.isModified('eligibility.allowedBranches')) {
+          return true;
+        }
+        return ALLOWED_BRANCHES.includes(val);
+      },
+      message: '{VALUE} is not a valid branch.'
+    }
   }],
   maxBacklogs: {
     type: Number,

@@ -355,9 +355,18 @@ export class EmployerController {
         .populate('studentId', 'name email')
         .sort({ aiMatchScore: -1 });
 
+      const mappedApplications = applications.map(app => {
+        const obj = app.toObject();
+        const accepted = app.timeline.some(t => t.comments && t.comments.includes('Offer ACCEPTED'));
+        if (accepted) {
+          obj.status = 'accepted';
+        }
+        return obj;
+      });
+
       res.status(200).json({
         success: true,
-        data: { applications }
+        data: { applications: mappedApplications }
       });
     } catch (error) {
       next(error);
@@ -402,10 +411,12 @@ export class EmployerController {
       });
 
       await application.save();
+      await application.populate('studentId', 'name email');
 
       // Award hired badge if offered
       if (status === 'offered') {
-        const studentProfile = await StudentProfile.findOne({ userId: application.studentId });
+        const studentIdVal = (application.studentId as any)._id || application.studentId;
+        const studentProfile = await StudentProfile.findOne({ userId: studentIdVal });
         if (studentProfile) {
           if (!studentProfile.badges) {
             studentProfile.badges = [];
@@ -417,10 +428,16 @@ export class EmployerController {
         }
       }
 
+      const mappedApp = application.toObject();
+      const accepted = application.timeline.some(t => t.comments && t.comments.includes('Offer ACCEPTED'));
+      if (accepted) {
+        mappedApp.status = 'accepted';
+      }
+
       res.status(200).json({
         success: true,
         message: `Application stage progressed to ${status}.`,
-        data: { application }
+        data: { application: mappedApp }
       });
     } catch (error) {
       next(error);

@@ -318,15 +318,24 @@ export const DashboardHome: React.FC = () => {
                   </thead>
                   <tbody className="divide-y">
                     {eligibleJobs.slice(0, 4).map((job) => {
-                      const alreadyApplied = applications.some(app => app.jobId?._id === job._id);
+                      const app = applications.find(a => a.jobId?._id === job._id);
                       return (
                         <tr key={job._id} className="hover:bg-secondary/25 transition-colors">
                           <td className="px-6 py-4 text-foreground font-bold">{job.companyId?.name || 'Company'}</td>
                           <td className="px-6 py-4 text-muted-foreground">{job.title}</td>
                           <td className="px-6 py-4 text-foreground">{job.salaryRange || 'Unspecified'}</td>
                           <td className="px-6 py-4 text-right">
-                            {alreadyApplied ? (
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded">Applied</span>
+                            {app ? (
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded border inline-block ${
+                                app.status === 'applied' ? 'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-800' :
+                                app.status === 'shortlisted' ? 'bg-violet-50 border-violet-250 text-violet-705 dark:bg-violet-950/20 dark:border-violet-900 dark:text-violet-400' :
+                                app.status === 'interviewing' ? 'bg-indigo-50 border-indigo-250 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900 dark:text-indigo-400' :
+                                app.status === 'offered' ? 'bg-emerald-50 border-emerald-250 text-emerald-750 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-405' :
+                                app.status === 'rejected' ? 'bg-rose-50 border-rose-250 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-450' :
+                                'bg-slate-50 border-slate-200 text-slate-700'
+                              }`}>
+                                {app.status}
+                              </span>
                             ) : (
                               <button
                                 disabled={applyingJobId === job._id}
