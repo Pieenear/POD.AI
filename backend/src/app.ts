@@ -17,9 +17,19 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = env.CLIENT_URL
+  ? env.CLIENT_URL.split(',').map((url) => url.trim())
+  : ['http://localhost:5173'];
+
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
