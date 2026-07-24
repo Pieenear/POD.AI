@@ -454,7 +454,7 @@ export class StudentController {
 
             // 2. Branch Eligibility Check
             const allowedBranches = job.eligibility?.allowedBranches || [];
-            if (allowedBranches.length > 0 && !allowedBranches.some(b => branch.trim().toLowerCase().includes((b || '').trim().toLowerCase()))) {
+            if (allowedBranches.length > 0 && !allowedBranches.some((b: string) => branch.trim().toLowerCase().includes((b || '').trim().toLowerCase()))) {
               isEligible = false;
               ineligibleReason = `Branch restricted. Allowed: ${allowedBranches.join(', ')}. Your branch: ${branch || 'N/A'}`;
             }
@@ -743,9 +743,9 @@ export class StudentController {
         const obj = app.toObject();
         const accepted = app.timeline.some(t => t.comments && t.comments.includes('Offer ACCEPTED'));
         if (accepted) {
-          obj.status = 'accepted';
+          (obj as any).status = 'accepted';
         } else if (app.status === 'offered') {
-          obj.status = 'pending';
+          (obj as any).status = 'pending';
         }
         return obj;
       });

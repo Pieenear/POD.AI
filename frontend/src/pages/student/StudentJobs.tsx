@@ -61,10 +61,6 @@ export const StudentJobs: React.FC = () => {
     }
   };
 
-  const hasApplied = (jobId: string) => {
-    return applications.some(app => app.jobId?._id === jobId);
-  };
-
   // Filter logic
   const filteredJobs = jobs.filter(job => {
     // Branch Filter (match job eligible branches if present)

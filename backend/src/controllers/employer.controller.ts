@@ -359,7 +359,7 @@ export class EmployerController {
         const obj = app.toObject();
         const accepted = app.timeline.some(t => t.comments && t.comments.includes('Offer ACCEPTED'));
         if (accepted) {
-          obj.status = 'accepted';
+          (obj as any).status = 'accepted';
         }
         return obj;
       });
@@ -431,7 +431,7 @@ export class EmployerController {
       const mappedApp = application.toObject();
       const accepted = application.timeline.some(t => t.comments && t.comments.includes('Offer ACCEPTED'));
       if (accepted) {
-        mappedApp.status = 'accepted';
+        (mappedApp as any).status = 'accepted';
       }
 
       res.status(200).json({

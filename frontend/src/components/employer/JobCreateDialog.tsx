@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
@@ -11,7 +11,7 @@ const jobSchema = z.object({
   salaryRange: z.string().optional().or(z.literal('')),
   type: z.enum(['full-time', 'part-time', 'internship', 'contract']),
   minCgpa: z.number().min(0).max(10),
-  allowedBranches: z.array(z.string()).default([]),
+  allowedBranches: z.array(z.string()),
   maxBacklogs: z.number().min(0),
   deadline: z.string().min(1, 'Application deadline is required'),
   requirementsString: z.string().optional().or(z.literal('')),
@@ -116,7 +116,7 @@ export const JobCreateDialog: React.FC<JobCreateDialogProps> = ({
 
   if (!isOpen) return null;
 
-  const onSubmit = (data: JobFields) => {
+  const onSubmit: SubmitHandler<JobFields> = (data) => {
     const parseCommaSeparated = (str?: string) => {
       if (!str) return [];
       return str.split(',').map(s => s.trim()).filter(s => s !== '');
